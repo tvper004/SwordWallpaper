@@ -1,0 +1,869 @@
+use crate::app::{AuraApp, Message};
+use crate::config::SwitcherStyle;
+use cosmic::iced::alignment::{Horizontal, Vertical};
+use cosmic::iced::{Alignment, Length};
+use cosmic::widget;
+use cosmic::Element;
+
+impl AuraApp {
+    pub(crate) fn view_quick_switcher(&self) -> Element<'_, Message> {
+        match self.config.switcher_style {
+            SwitcherStyle::Classic => self.view_classic_switcher(),
+            SwitcherStyle::Cinematic => self.view_cinematic_switcher(),
+            SwitcherStyle::Honeycomb => self.view_honeycomb_switcher(),
+        }
+    }
+
+    pub(crate) fn view_classic_switcher(&self) -> Element<'_, Message> {
+        let pool = self.switcher_pool();
+        let n = pool.len();
+        if n == 0 {
+            let empty_text = widget::text::body(self.language.library_empty_title()).size(16);
+            let empty_container = widget::container(empty_text)
+                .padding(24)
+                .class(cosmic::theme::Container::Card);
+            let pod_mouse_area = widget::mouse_area(empty_container).on_press(Message::SwitcherNoop);
+            let positioned = widget::container(pod_mouse_area)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .align_x(Horizontal::Center)
+                .align_y(Vertical::Center)
+                .class(cosmic::theme::Container::Transparent);
+            return widget::mouse_area(positioned)
+                .on_press(Message::CloseQuickSwitcher)
+                .into();
+        }
+
+        let curr_idx = self.switcher_index % n;
+
+        let is_vertical = matches!(self.config.switcher_position.as_str(), "left" | "right");
+
+        // Cards configuration for up to 5 slots: [-2, -1, 0, +1, +2]
+        // (offset, width, height, is_center)
+        let slots: Vec<(i32, f32, f32, bool)> = if is_vertical {
+            if n >= 5 {
+                vec![
+                    (-2, 120.0, 75.0, false),
+                    (-1, 170.0, 106.0, false),
+                    (0, 240.0, 150.0, true),
+                    (1, 170.0, 106.0, false),
+                    (2, 120.0, 75.0, false),
+                ]
+            } else if n == 4 {
+                vec![
+                    (-2, 120.0, 75.0, false),
+                    (-1, 170.0, 106.0, false),
+                    (0, 240.0, 150.0, true),
+                    (1, 170.0, 106.0, false),
+                ]
+            } else if n == 3 {
+                vec![
+                    (-1, 170.0, 106.0, false),
+                    (0, 240.0, 150.0, true),
+                    (1, 170.0, 106.0, false),
+                ]
+            } else if n == 2 {
+                vec![
+                    (0, 240.0, 150.0, true),
+                    (1, 170.0, 106.0, false),
+                ]
+            } else {
+                vec![(0, 240.0, 150.0, true)]
+            }
+        } else {
+            if n >= 5 {
+                vec![
+                    (-2, 120.0, 75.0, false),
+                    (-1, 180.0, 112.0, false),
+                    (0, 300.0, 188.0, true),
+                    (1, 180.0, 112.0, false),
+                    (2, 120.0, 75.0, false),
+                ]
+            } else if n == 4 {
+                vec![
+                    (-2, 120.0, 75.0, false),
+                    (-1, 180.0, 112.0, false),
+                    (0, 300.0, 188.0, true),
+                    (1, 180.0, 112.0, false),
+                ]
+            } else if n == 3 {
+                vec![
+                    (-1, 180.0, 112.0, false),
+                    (0, 300.0, 188.0, true),
+                    (1, 180.0, 112.0, false),
+                ]
+            } else if n == 2 {
+                vec![
+                    (0, 300.0, 188.0, true),
+                    (1, 180.0, 112.0, false),
+                ]
+            } else {
+                vec![(0, 300.0, 188.0, true)]
+            }
+        };
+
+        let mut elements: Vec<Element<'_, Message>> = Vec::with_capacity(slots.len());
+
+        for (offset, w, h, is_center) in slots {
+            let item_idx = ((curr_idx as i32 + offset).rem_euclid(n as i32)) as usize;
+            let video = pool[item_idx];
+
+            let card_widget: Element<'_, Message> = if let Some(thumb) = &video.thumb_path {
+                widget::button::image(thumb.clone())
+                    .width(w)
+                    .height(h)
+                    .on_press(Message::SwitcherApplyIndex(item_idx))
+                    .into()
+            } else {
+                let icon_name = if video.is_video {
+                    "video-x-generic-symbolic"
+                } else {
+                    "image-x-generic-symbolic"
+                };
+                let placeholder = widget::container(widget::icon::from_name(icon_name).size(24))
+                    .width(Length::Fixed(w))
+                    .height(Length::Fixed(h))
+                    .align_x(Horizontal::Center)
+                    .align_y(Vertical::Center);
+
+                widget::button::custom(placeholder)
+                    .on_press(Message::SwitcherApplyIndex(item_idx))
+                    .into()
+            };
+
+            if is_center {
+                // Active middle wallpaper with system COSMIC accent-colored border
+                let bordered_center = widget::container(card_widget)
+                    .padding(3)
+                    .class(cosmic::theme::Container::custom(move |theme| {
+                        let accent_color: cosmic::iced::Color = theme.cosmic().accent.base.into();
+                        cosmic::iced::widget::container::Style {
+                            border: cosmic::iced::Border {
+                                color: accent_color,
+                                width: 3.0,
+                                radius: 12.0.into(),
+                            },
+                            ..Default::default()
+                        }
+                    }));
+                elements.push(bordered_center.into());
+            } else {
+                elements.push(card_widget);
+            }
+        }
+
+        let floating_pod = if is_vertical {
+            let mut col = widget::column::with_capacity(elements.len())
+                .spacing(12)
+                .align_x(Alignment::Center);
+            for el in elements {
+                col = col.push(el);
+            }
+            widget::container(col)
+                .padding([18, 14])
+                .class(cosmic::theme::Container::Card)
+        } else {
+            let mut row = widget::row::with_capacity(elements.len())
+                .spacing(14)
+                .align_y(Alignment::Center);
+            for el in elements {
+                row = row.push(el);
+            }
+            widget::container(row)
+                .padding([14, 18])
+                .class(cosmic::theme::Container::Card)
+        };
+
+        // Prevent clicks inside the pod from triggering the outside close
+        let pod_mouse_area = widget::mouse_area(floating_pod).on_press(Message::SwitcherNoop);
+
+        let pos = self.config.switcher_position.as_str();
+        let positioned = match pos {
+            "bottom" => widget::container(pod_mouse_area)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .align_x(Horizontal::Center)
+                .align_y(Vertical::Bottom)
+                .padding([0, 0, 14, 0]),
+            "left" => widget::container(pod_mouse_area)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .align_x(Horizontal::Left)
+                .align_y(Vertical::Center)
+                .padding([0, 0, 0, 14]),
+            "right" => widget::container(pod_mouse_area)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .align_x(Horizontal::Right)
+                .align_y(Vertical::Center)
+                .padding([0, 14, 0, 0]),
+            _ => widget::container(pod_mouse_area) // "top" default
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .align_x(Horizontal::Center)
+                .align_y(Vertical::Top)
+                .padding([14, 0, 0, 0]),
+        };
+
+        widget::mouse_area(
+            positioned.class(cosmic::theme::Container::Transparent)
+        )
+        .on_press(Message::CloseQuickSwitcher)
+        .into()
+    }
+
+    pub(crate) fn view_cinematic_switcher(&self) -> Element<'_, Message> {
+        let pool = self.switcher_pool();
+        let n = pool.len();
+        if n == 0 {
+            let empty_text = widget::text::body(self.language.library_empty_title()).size(16);
+            let empty_container = widget::container(empty_text)
+                .padding(24)
+                .class(cosmic::theme::Container::Card);
+            let pod_mouse_area = widget::mouse_area(empty_container).on_press(Message::SwitcherNoop);
+            let positioned = widget::container(pod_mouse_area)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .align_x(Horizontal::Center)
+                .align_y(Vertical::Center)
+                .class(cosmic::theme::Container::custom(|_theme| {
+                    cosmic::iced::widget::container::Style {
+                        background: Some(cosmic::iced::Background::Color(cosmic::iced::Color::from_rgba(0.0, 0.0, 0.0, 0.38))),
+                        ..Default::default()
+                    }
+                }));
+            return widget::mouse_area(positioned)
+                .on_press(Message::CloseQuickSwitcher)
+                .into();
+        }
+
+        let curr_idx = self.switcher_index % n;
+
+        // Slots configuration: (offset, width, height, x_shift, is_center)
+        // Ordered from outer cards inward so the center card (0) is pushed LAST in the Stack and renders on TOP.
+        let slots: Vec<(i32, f32, f32, f32, bool)> = if n >= 7 {
+            vec![
+                (-3, 230.0, 205.0, -540.0, false),
+                (3, 230.0, 205.0, 540.0, false),
+                (-2, 290.0, 260.0, -380.0, false),
+                (2, 290.0, 260.0, 380.0, false),
+                (-1, 350.0, 315.0, -200.0, false),
+                (1, 350.0, 315.0, 200.0, false),
+                (0, 420.0, 380.0, 0.0, true),
+            ]
+        } else if n >= 5 {
+            vec![
+                (-2, 290.0, 260.0, -380.0, false),
+                (2, 290.0, 260.0, 380.0, false),
+                (-1, 350.0, 315.0, -200.0, false),
+                (1, 350.0, 315.0, 200.0, false),
+                (0, 420.0, 380.0, 0.0, true),
+            ]
+        } else if n == 4 {
+            vec![
+                (-2, 290.0, 260.0, -380.0, false),
+                (-1, 350.0, 315.0, -200.0, false),
+                (1, 350.0, 315.0, 200.0, false),
+                (0, 420.0, 380.0, 0.0, true),
+            ]
+        } else if n == 3 {
+            vec![
+                (-1, 350.0, 315.0, -200.0, false),
+                (1, 350.0, 315.0, 200.0, false),
+                (0, 420.0, 380.0, 0.0, true),
+            ]
+        } else if n == 2 {
+            vec![
+                (1, 350.0, 315.0, 200.0, false),
+                (0, 420.0, 380.0, 0.0, true),
+            ]
+        } else {
+            vec![(0, 420.0, 380.0, 0.0, true)]
+        };
+
+        let accent_base = cosmic::theme::active().cosmic().accent.base;
+        let accent_color: cosmic::iced::Color = accent_base.into();
+        let accent_rgb: [u8; 3] = [
+            (accent_color.r * 255.0).round() as u8,
+            (accent_color.g * 255.0).round() as u8,
+            (accent_color.b * 255.0).round() as u8,
+        ];
+
+        let mut stack_children: Vec<Element<'_, Message>> = Vec::with_capacity(slots.len());
+
+        for (offset, w, h, x_shift, is_center) in slots {
+            let item_idx = ((curr_idx as i32 + offset).rem_euclid(n as i32)) as usize;
+            let video = pool[item_idx];
+
+            let card_widget: Element<'_, Message> = if is_center && video.is_video {
+                if let Some(anim_handle) = crate::scanner::thumbs::cinematic_video_anim_handle(&video.path, self.cinematic_frame_tick) {
+                    let img = widget::image(anim_handle)
+                        .width(Length::Fixed(w))
+                        .height(Length::Fixed(h))
+                        .content_fit(cosmic::iced::ContentFit::Cover);
+                    widget::mouse_area(img)
+                        .on_press(Message::SwitcherApplyIndex(item_idx))
+                        .into()
+                } else if let Some(handle) = crate::scanner::thumbs::cinematic_thumb_handle(&video.path, is_center, Some(accent_rgb)) {
+                    let img = widget::image(handle)
+                        .width(Length::Fixed(w))
+                        .height(Length::Fixed(h));
+                    widget::mouse_area(img)
+                        .on_press(Message::SwitcherApplyIndex(item_idx))
+                        .into()
+                } else if let Some(cinematic_thumb) = crate::scanner::thumbs::cinematic_thumb_for_media(&video.path, is_center, Some(accent_rgb)) {
+                    let img = widget::image(cinematic_thumb)
+                        .width(Length::Fixed(w))
+                        .height(Length::Fixed(h));
+                    widget::mouse_area(img)
+                        .on_press(Message::SwitcherApplyIndex(item_idx))
+                        .into()
+                } else {
+                    let icon_name = "video-x-generic-symbolic";
+                    let placeholder = widget::container(widget::icon::from_name(icon_name).size(32))
+                        .width(Length::Fixed(w))
+                        .height(Length::Fixed(h))
+                        .align_x(Horizontal::Center)
+                        .align_y(Vertical::Center);
+                    widget::button::custom(placeholder)
+                        .on_press(Message::SwitcherApplyIndex(item_idx))
+                        .into()
+                }
+            } else if let Some(handle) = crate::scanner::thumbs::cinematic_thumb_handle(&video.path, is_center, Some(accent_rgb)) {
+                let img = widget::image(handle)
+                    .width(Length::Fixed(w))
+                    .height(Length::Fixed(h));
+                widget::mouse_area(img)
+                    .on_press(Message::SwitcherApplyIndex(item_idx))
+                    .into()
+            } else if let Some(cinematic_thumb) = crate::scanner::thumbs::cinematic_thumb_for_media(&video.path, is_center, Some(accent_rgb)) {
+                let img = widget::image(cinematic_thumb)
+                    .width(Length::Fixed(w))
+                    .height(Length::Fixed(h));
+                widget::mouse_area(img)
+                    .on_press(Message::SwitcherApplyIndex(item_idx))
+                    .into()
+            } else if let Some(thumb) = &video.thumb_path {
+                widget::button::image(thumb.clone())
+                    .width(w)
+                    .height(h)
+                    .on_press(Message::SwitcherApplyIndex(item_idx))
+                    .into()
+            } else {
+                let icon_name = if video.is_video {
+                    "video-x-generic-symbolic"
+                } else {
+                    "image-x-generic-symbolic"
+                };
+                let placeholder = widget::container(widget::icon::from_name(icon_name).size(32))
+                    .width(Length::Fixed(w))
+                    .height(Length::Fixed(h))
+                    .align_x(Horizontal::Center)
+                    .align_y(Vertical::Center)
+                    .class(cosmic::theme::Container::Card);
+
+                widget::button::custom(placeholder)
+                    .on_press(Message::SwitcherApplyIndex(item_idx))
+                    .into()
+            };
+
+            let positioned_card: Element<'_, Message> = if x_shift > 0.0 {
+                let r = widget::row::with_capacity(2)
+                    .push(widget::Space::new().width(Length::Fixed(2.0 * x_shift)))
+                    .push(card_widget);
+                widget::container(r)
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .align_x(Horizontal::Center)
+                    .align_y(Vertical::Center)
+                    .into()
+            } else if x_shift < 0.0 {
+                let r = widget::row::with_capacity(2)
+                    .push(card_widget)
+                    .push(widget::Space::new().width(Length::Fixed(2.0 * x_shift.abs())));
+                widget::container(r)
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .align_x(Horizontal::Center)
+                    .align_y(Vertical::Center)
+                    .into()
+            } else {
+                widget::container(card_widget)
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .align_x(Horizontal::Center)
+                    .align_y(Vertical::Center)
+                    .into()
+            };
+
+            stack_children.push(positioned_card);
+        }
+
+        let carousel_stack = cosmic::iced::widget::stack(stack_children)
+            .width(Length::Fill)
+            .height(Length::Fixed(440.0));
+
+        // Prevent clicking on the carousel items from closing the HUD via backdrop
+        let content_mouse_area = widget::mouse_area(carousel_stack).on_press(Message::SwitcherNoop);
+
+        let centered_content = widget::container(content_mouse_area)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .align_x(Horizontal::Center)
+            .align_y(Vertical::Center);
+
+        let backdrop = widget::container(centered_content)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .align_x(Horizontal::Center)
+            .align_y(Vertical::Center)
+            .class(cosmic::theme::Container::custom(|_theme| {
+                cosmic::iced::widget::container::Style {
+                    background: Some(cosmic::iced::Background::Color(cosmic::iced::Color::from_rgba(0.0, 0.0, 0.0, 0.38))),
+                    ..Default::default()
+                }
+            }));
+
+        widget::mouse_area(backdrop)
+            .on_press(Message::CloseQuickSwitcher)
+            .into()
+    }
+
+    pub(crate) fn view_honeycomb_switcher(&self) -> Element<'_, Message> {
+        let pool = self.switcher_pool();
+        let n = pool.len();
+        if n == 0 {
+            let empty_text = widget::text::body(self.language.library_empty_title()).size(16);
+            let empty_container = widget::container(empty_text)
+                .padding(24)
+                .class(cosmic::theme::Container::Card);
+            let pod_mouse_area = widget::mouse_area(empty_container).on_press(Message::SwitcherNoop);
+            let positioned = widget::container(pod_mouse_area)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .align_x(Horizontal::Center)
+                .align_y(Vertical::Center)
+                .class(cosmic::theme::Container::custom(|_theme| {
+                    cosmic::iced::widget::container::Style {
+                        background: Some(cosmic::iced::Background::Color(cosmic::iced::Color::from_rgba(0.0, 0.0, 0.0, 0.42))),
+                        ..Default::default()
+                    }
+                }));
+            return widget::mouse_area(positioned)
+                .on_press(Message::CloseQuickSwitcher)
+                .into();
+        }
+
+        let curr_idx = self.switcher_index % n;
+        let accent_base = cosmic::theme::active().cosmic().accent.base;
+        let accent_color: cosmic::iced::Color = accent_base.into();
+        let accent_rgb: [u8; 3] = [
+            (accent_color.r * 255.0).round() as u8,
+            (accent_color.g * 255.0).round() as u8,
+            (accent_color.b * 255.0).round() as u8,
+        ];
+
+        let responsive_honeycomb = widget::responsive(move |size| {
+            SWITCHER_LOGICAL_WIDTH.store(size.width.to_bits(), std::sync::atomic::Ordering::Relaxed);
+            SWITCHER_LOGICAL_HEIGHT.store(size.height.to_bits(), std::sync::atomic::Ordering::Relaxed);
+
+            let layout = HoneycombLayout::new_with_scroll(size.width, size.height, n, curr_idx, self.honeycomb_scroll_x);
+
+            let mut cards = Vec::new();
+
+            for item_idx in 0..n {
+                let (col, row) = panal_slot_for_index(item_idx);
+                let (cx, cy) = layout.item_center(col, row);
+
+                let card_w = layout.card_width();
+                let card_h = layout.card_height();
+
+                // Frustum culling: skip items completely off screen
+                if cx + card_w * 0.5 < -60.0 || cx - card_w * 0.5 > size.width + 60.0 {
+                    continue;
+                }
+
+                let is_active = item_idx == curr_idx;
+                let draw_x = cx - card_w * 0.5;
+                let draw_y = cy - card_h * 0.5;
+
+                let video = pool[item_idx];
+                let card_element: Element<'_, Message> = if video.is_video {
+                    if let Some(handle) = crate::scanner::thumbs::honeycomb_anim_handle(
+                        &video.path,
+                        is_active,
+                        Some(accent_rgb),
+                        self.honeycomb_frame_tick,
+                    ) {
+                        widget::image(handle)
+                            .width(Length::Fixed(card_w))
+                            .height(Length::Fixed(card_h))
+                            .into()
+                    } else if let Some(handle) =
+                        crate::scanner::thumbs::honeycomb_thumb_handle(&video.path, is_active, Some(accent_rgb))
+                    {
+                        widget::image(handle)
+                            .width(Length::Fixed(card_w))
+                            .height(Length::Fixed(card_h))
+                            .into()
+                    } else if let Some(hex_thumb) =
+                        crate::scanner::thumbs::honeycomb_thumb_for_media(&video.path, is_active, Some(accent_rgb))
+                    {
+                        widget::image(hex_thumb)
+                            .width(Length::Fixed(card_w))
+                            .height(Length::Fixed(card_h))
+                            .into()
+                    } else if let Some(thumb) = &video.thumb_path {
+                        widget::image(thumb.clone())
+                            .width(Length::Fixed(card_w))
+                            .height(Length::Fixed(card_h))
+                            .into()
+                    } else {
+                        widget::container(widget::icon::from_name("video-x-generic-symbolic").size(28))
+                            .width(Length::Fixed(card_w))
+                            .height(Length::Fixed(card_h))
+                            .align_x(Horizontal::Center)
+                            .align_y(Vertical::Center)
+                            .class(cosmic::theme::Container::Card)
+                            .into()
+                    }
+                } else {
+                    if let Some(handle) =
+                        crate::scanner::thumbs::honeycomb_thumb_handle(&video.path, is_active, Some(accent_rgb))
+                    {
+                        widget::image(handle)
+                            .width(Length::Fixed(card_w))
+                            .height(Length::Fixed(card_h))
+                            .into()
+                    } else if let Some(hex_thumb) =
+                        crate::scanner::thumbs::honeycomb_thumb_for_media(&video.path, is_active, Some(accent_rgb))
+                    {
+                        widget::image(hex_thumb)
+                            .width(Length::Fixed(card_w))
+                            .height(Length::Fixed(card_h))
+                            .into()
+                    } else if let Some(thumb) = &video.thumb_path {
+                        widget::image(thumb.clone())
+                            .width(Length::Fixed(card_w))
+                            .height(Length::Fixed(card_h))
+                            .into()
+                    } else {
+                        widget::container(widget::icon::from_name("image-x-generic-symbolic").size(28))
+                            .width(Length::Fixed(card_w))
+                            .height(Length::Fixed(card_h))
+                            .align_x(Horizontal::Center)
+                            .align_y(Vertical::Center)
+                            .class(cosmic::theme::Container::Card)
+                            .into()
+                    }
+                };
+
+                let pinned = cosmic::iced::widget::pin(card_element)
+                    .x(draw_x)
+                    .y(draw_y);
+
+                cards.push(Element::from(pinned));
+            }
+
+            let stack = cosmic::iced::widget::stack(cards)
+                .width(Length::Fill)
+                .height(Length::Fill);
+
+            widget::container(stack)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .class(cosmic::theme::Container::Transparent)
+                .into()
+        });
+
+        // Minimalist Settings (⚙) and Close (✕) buttons in top right
+        let gear_btn = widget::button::standard(format!("⚙ {}", self.language.nav_settings()))
+            .on_press(Message::OpenSettingsFromHud);
+
+        let close_btn = widget::button::standard("✕")
+            .on_press(Message::CloseQuickSwitcher);
+
+        let top_buttons = widget::row::with_capacity(2)
+            .spacing(8)
+            .align_y(Alignment::Center)
+            .push(gear_btn)
+            .push(close_btn);
+
+        let top_bar = widget::container(top_buttons)
+            .width(Length::Fill)
+            .align_x(Horizontal::Right)
+            .padding([22, 28, 0, 0]);
+
+        let overlay = cosmic::iced::widget::stack(vec![
+            responsive_honeycomb.into(),
+            Element::from(top_bar),
+        ])
+        .width(Length::Fill)
+        .height(Length::Fill);
+
+        widget::container(overlay)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .class(cosmic::theme::Container::Transparent)
+            .into()
+    }
+}
+
+pub(crate) static SWITCHER_LOGICAL_WIDTH: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+pub(crate) static SWITCHER_LOGICAL_HEIGHT: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+
+/// Assigns a (col, row) slot to an item index in the Honeycomb grid according to user specifications:
+/// - Exactly 3 rows: Row 0 (up to 6), Row 1 (up to 5, staggered), Row 2 (up to 6)
+/// - If items < 17, fills half of row 0 (3 items: 0..=2), drops to row 1 (3 items: 3..=5),
+///   drops to row 2 (3 items: 6..=8).
+/// - Then fills the remaining slots: row 0 (3 items: 9..=11), row 1 (2 items: 12..=13),
+///   row 2 (3 items: 14..=16) to complete the 17-item bounded cluster.
+/// - For items >= 17, extra items expand into column 6, 7, ... with 3 items per column.
+pub fn panal_slot_for_index(item_idx: usize) -> (usize, usize) {
+    match item_idx {
+        0..=2 => (item_idx, 0),
+        3..=5 => (item_idx - 3, 1),
+        6..=8 => (item_idx - 6, 2),
+        9..=11 => (3 + (item_idx - 9), 0),
+        12..=13 => (3 + (item_idx - 12), 1),
+        14..=16 => (3 + (item_idx - 14), 2),
+        _ => {
+            let extra = item_idx - 17;
+            let col = 6 + (extra / 3);
+            let row = extra % 3;
+            (col, row)
+        }
+    }
+}
+
+/// Geometric layout calculator for the Honeycomb HUD.
+/// Pointy-topped hexagons with uniform gap in all directions and exact pixel-level hit-testing.
+#[derive(Debug, Clone, Copy)]
+pub struct HoneycombLayout {
+    pub screen_w: f32,
+    #[allow(dead_code)]
+    pub screen_h: f32,
+    pub r: f32,
+    pub inradius: f32,
+    pub w: f32,
+    pub h: f32,
+    pub step_x: f32,
+    pub step_y: f32,
+    #[allow(dead_code)]
+    pub gap: f32,
+    #[allow(dead_code)]
+    pub rows_per_col: usize,
+    #[allow(dead_code)]
+    pub total_cols: usize,
+    #[allow(dead_code)]
+    pub sel_col: usize,
+    pub camera_x: f32,
+    pub grid_start_y: f32,
+}
+
+impl HoneycombLayout {
+    pub const GAP: f32 = 15.0;
+    pub const ROWS_PER_COL: usize = 3;
+
+    pub fn card_width(&self) -> f32 {
+        self.w + self.gap
+    }
+
+    pub fn card_height(&self) -> f32 {
+        (self.w + self.gap) * 1.1547005
+    }
+
+    #[allow(dead_code)]
+    pub fn new(screen_w: f32, screen_h: f32, n: usize, curr_idx: usize) -> Self {
+        Self::new_with_scroll(screen_w, screen_h, n, curr_idx, 0.0)
+    }
+
+    pub fn new_with_scroll(screen_w: f32, screen_h: f32, n: usize, curr_idx: usize, scroll_x: f32) -> Self {
+        let gap = Self::GAP;
+        let rows_per_col = Self::ROWS_PER_COL;
+
+        let avail_h = (screen_h * 0.80).clamp(380.0, 1020.0);
+        // Total height spanned by 3 rows: 2 * step_y + h = 2 * (0.75 * h + sqrt(3)/2 * gap) + h = 2.5 * h + 1.7320508 * gap
+        let h = ((avail_h - 1.7320508 * gap) / 2.5).clamp(140.0, 320.0);
+        let r = h * 0.5;
+        let w = h * 0.8660254f32; // sqrt(3)/2 * h
+        let inradius = w * 0.5;
+
+        let step_x = w + gap;
+        let step_y = 1.5 * r + 0.8660254 * gap;
+
+        let total_cols = if n > 0 {
+            (0..n).map(|i| panal_slot_for_index(i).0 + 1).max().unwrap_or(1)
+        } else {
+            0
+        };
+        let sel_col = if n > 0 { panal_slot_for_index(curr_idx % n).0 } else { 0 };
+
+        let total_grid_w = if total_cols > 0 {
+            (total_cols - 1) as f32 * step_x + 0.5 * step_x + w
+        } else {
+            w
+        };
+        let total_grid_h = 2.0 * step_y + h;
+
+        let camera_x = if total_grid_w <= screen_w - 100.0 {
+            (screen_w - total_grid_w) * 0.5
+        } else {
+            let max_cam = 60.0f32;
+            let min_cam = screen_w - total_grid_w - 60.0f32;
+            (max_cam + scroll_x).clamp(min_cam, max_cam)
+        };
+
+        let grid_start_y = (screen_h - total_grid_h) * 0.5;
+
+        Self {
+            screen_w,
+            screen_h,
+            r,
+            inradius,
+            w,
+            h,
+            step_x,
+            step_y,
+            gap,
+            rows_per_col,
+            total_cols,
+            sel_col,
+            camera_x,
+            grid_start_y,
+        }
+    }
+
+    /// Center coordinate (x, y) for a given item in (col, row).
+    pub fn item_center(&self, col: usize, row: usize) -> (f32, f32) {
+        let row_stagger = if row % 2 != 0 { 0.5 * self.step_x } else { 0.0 };
+        let cx = self.camera_x + col as f32 * self.step_x + row_stagger + (self.w * 0.5);
+        let cy = self.grid_start_y + row as f32 * self.step_y + (self.h * 0.5);
+        (cx, cy)
+    }
+
+    /// Top-left drawing position (x, y) for a given item in (col, row).
+    #[allow(dead_code)]
+    pub fn item_draw_pos(&self, col: usize, row: usize) -> (f32, f32) {
+        let (cx, cy) = self.item_center(col, row);
+        (cx - self.w * 0.5, cy - self.h * 0.5)
+    }
+
+    /// Tests whether a point (px, py) lies inside a pointy-topped hexagon centered at (cx, cy).
+    pub fn contains_point(&self, cx: f32, cy: f32, px: f32, py: f32) -> bool {
+        let dx = (px - cx).abs();
+        let dy = (py - cy).abs();
+
+        dx <= self.inradius && (1.7320508 * dy + dx <= 1.7320508 * self.r)
+    }
+
+    /// Geometric hit-test to find the item index at screen coordinates (px, py).
+    pub fn hit_test(&self, n: usize, px: f32, py: f32) -> Option<usize> {
+        if n == 0 {
+            return None;
+        }
+
+        for item_idx in 0..n {
+            let (col, row) = panal_slot_for_index(item_idx);
+            let (cx, cy) = self.item_center(col, row);
+            if cx + self.w * 0.5 < 0.0 || cx - self.w * 0.5 > self.screen_w {
+                continue;
+            }
+
+            if self.contains_point(cx, cy, px, py) {
+                return Some(item_idx);
+            }
+        }
+
+        None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_panal_slot_distribution() {
+        assert_eq!(panal_slot_for_index(0), (0, 0));
+        assert_eq!(panal_slot_for_index(1), (1, 0));
+        assert_eq!(panal_slot_for_index(2), (2, 0));
+        assert_eq!(panal_slot_for_index(3), (0, 1));
+        assert_eq!(panal_slot_for_index(4), (1, 1));
+        assert_eq!(panal_slot_for_index(5), (2, 1));
+        assert_eq!(panal_slot_for_index(6), (0, 2));
+        assert_eq!(panal_slot_for_index(7), (1, 2));
+        assert_eq!(panal_slot_for_index(8), (2, 2));
+        assert_eq!(panal_slot_for_index(9), (3, 0));
+        assert_eq!(panal_slot_for_index(10), (4, 0));
+        assert_eq!(panal_slot_for_index(11), (5, 0));
+        assert_eq!(panal_slot_for_index(12), (3, 1));
+        assert_eq!(panal_slot_for_index(13), (4, 1));
+        assert_eq!(panal_slot_for_index(14), (3, 2));
+        assert_eq!(panal_slot_for_index(15), (4, 2));
+        assert_eq!(panal_slot_for_index(16), (5, 2));
+        assert_eq!(panal_slot_for_index(17), (6, 0));
+        assert_eq!(panal_slot_for_index(18), (6, 1));
+        assert_eq!(panal_slot_for_index(19), (6, 2));
+        assert_eq!(panal_slot_for_index(20), (7, 0));
+    }
+
+    #[test]
+    fn test_honeycomb_layout_uniform_gap() {
+        let layout = HoneycombLayout::new(1366.0, 768.0, 12, 0);
+        let w = layout.w;
+        let r = layout.r;
+        let g = layout.gap;
+
+        // 1. Horizontal neighbors (col 0, row 0 and col 1, row 0)
+        let (c0_x, c0_y) = layout.item_center(0, 0);
+        let (c1_x, c1_y) = layout.item_center(1, 0);
+        assert_eq!(c0_y, c1_y);
+        let horiz_dist = (c1_x - c0_x).abs();
+        let horiz_gap = horiz_dist - w;
+        assert!((horiz_gap - g).abs() < 0.01, "Horizontal gap must match GAP exactly ({horiz_gap} vs {g})");
+
+        // 2. Diagonal neighbors (col 0, row 0 and col 0, row 1)
+        let (d1_x, d1_y) = layout.item_center(0, 1);
+        let diag_dx = (d1_x - c0_x).abs();
+        let diag_dy = (d1_y - c0_y).abs();
+        // Perpendicular distance along the normal vector (1/2, sqrt(3)/2)
+        let perp_dist = diag_dx * 0.5 + diag_dy * (0.8660254);
+        let expected_dist = 1.7320508 * r + g;
+        assert!((perp_dist - expected_dist).abs() < 0.05, "Perpendicular distance must match exactly ({perp_dist} vs {expected_dist})");
+    }
+
+    #[test]
+    fn test_honeycomb_layout_hit_test() {
+        let layout = HoneycombLayout::new(1366.0, 768.0, 6, 0);
+        let (c0_x, c0_y) = layout.item_center(0, 0);
+
+        // Center of item 0 (col 0, row 0)
+        assert_eq!(layout.hit_test(6, c0_x, c0_y), Some(0));
+
+        // Center of item 1 (col 1, row 0)
+        let (c1_x, c1_y) = layout.item_center(1, 0);
+        assert_eq!(layout.hit_test(6, c1_x, c1_y), Some(1));
+
+        // Center of item 3 (col 0, row 1)
+        let (c3_x, c3_y) = layout.item_center(0, 1);
+        assert_eq!(layout.hit_test(6, c3_x, c3_y), Some(3));
+
+        // Point squarely in horizontal gap between col 0 and col 1 in row 0
+        let horiz_gap_x = (c0_x + c1_x) * 0.5;
+        assert_eq!(layout.hit_test(6, horiz_gap_x, c0_y), None, "Point in horizontal gap should hit nothing");
+
+        // Point squarely in diagonal gap between (col 0, row 0) and (col 0, row 1)
+        let diag_gap_x = (c0_x + c3_x) * 0.5;
+        let diag_gap_y = (c0_y + c3_y) * 0.5;
+        assert_eq!(layout.hit_test(6, diag_gap_x, diag_gap_y), None, "Point in diagonal gap should hit nothing");
+
+        // Point at bounding box corner (inradius, r) is NOT inside the pointy hexagon
+        let corner_x = c0_x + layout.inradius;
+        let corner_y = c0_y + layout.r;
+        assert!(!layout.contains_point(c0_x, c0_y, corner_x, corner_y), "Bounding box corner must not be inside pointy hexagon");
+
+        // Point far outside grid
+        assert_eq!(layout.hit_test(6, 10.0, 10.0), None, "Point far outside grid should hit nothing");
+    }
+}

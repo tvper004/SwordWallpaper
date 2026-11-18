@@ -1,0 +1,2171 @@
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Language {
+    #[serde(rename = "es")]
+    Es,
+    #[serde(rename = "en")]
+    En,
+}
+
+impl Default for Language {
+    fn default() -> Self {
+        detect_system_language()
+    }
+}
+
+pub fn detect_system_language() -> Language {
+    if let Ok(lang) = std::env::var("LANG").or_else(|_| std::env::var("LC_MESSAGES")) {
+        if lang.to_lowercase().starts_with("es") {
+            return Language::Es;
+        }
+    }
+    Language::En
+}
+
+impl Language {
+    pub fn from_code(code: &str) -> Self {
+        match code.to_lowercase().as_str() {
+            "es" | "spanish" | "español" => Language::Es,
+            _ => Language::En,
+        }
+    }
+
+    pub fn code(&self) -> &'static str {
+        match self {
+            Language::Es => "es",
+            Language::En => "en",
+        }
+    }
+
+    // --- Navigation ---
+    pub fn nav_library(&self) -> &'static str {
+        match self {
+            Language::Es => "Biblioteca",
+            Language::En => "Library",
+        }
+    }
+
+    pub fn nav_home(&self) -> &'static str {
+        match self {
+            Language::Es => "Inicio",
+            Language::En => "Home",
+        }
+    }
+
+    pub fn nav_explore(&self) -> &'static str {
+        match self {
+            Language::Es => "Explorar",
+            Language::En => "Explore",
+        }
+    }
+
+    pub fn nav_monitors(&self) -> &'static str {
+        match self {
+            Language::Es => "Pantallas",
+            Language::En => "Displays",
+        }
+    }
+
+    pub fn nav_settings(&self) -> &'static str {
+        match self {
+            Language::Es => "Ajustes",
+            Language::En => "Settings",
+        }
+    }
+
+    pub fn nav_about(&self) -> &'static str {
+        match self {
+            Language::Es => "Acerca de",
+            Language::En => "About",
+        }
+    }
+
+    // --- Header ---
+    pub fn header_wallpapers_count(&self, count: usize) -> String {
+        match self {
+            Language::Es => format!("({} fondos)", count),
+            Language::En => format!("({} wallpapers)", count),
+        }
+    }
+
+    pub fn header_add_video(&self) -> &'static str {
+        match self {
+            Language::Es => "Añadir Video",
+            Language::En => "Add Video",
+        }
+    }
+
+    pub fn header_add_folder(&self) -> &'static str {
+        match self {
+            Language::Es => "Añadir Carpeta",
+            Language::En => "Add Folder",
+        }
+    }
+
+    // --- Library View ---
+    pub fn library_search_placeholder(&self) -> &'static str {
+        match self {
+            Language::Es => "Buscar fondos por nombre...",
+            Language::En => "Search wallpapers by name...",
+        }
+    }
+
+    pub fn library_empty_title(&self) -> &'static str {
+        match self {
+            Language::Es => "Tu Biblioteca de Fondos está vacía",
+            Language::En => "Your Wallpaper Library is empty",
+        }
+    }
+
+    pub fn library_empty_desc(&self) -> &'static str {
+        match self {
+            Language::Es => "Añade videos o carpetas para empezar a personalizar tu escritorio:",
+            Language::En => "Add videos or folders to start customizing your desktop:",
+        }
+    }
+
+    pub fn library_btn_add_video(&self) -> &'static str {
+        self.header_add_video()
+    }
+
+    pub fn library_btn_add_folder(&self) -> &'static str {
+        self.header_add_folder()
+    }
+
+    pub fn library_extracting_frame(&self) -> &'static str {
+        match self {
+            Language::Es => "Extrayendo fotograma...",
+            Language::En => "Extracting frame...",
+        }
+    }
+
+    pub fn library_active(&self) -> &'static str {
+        match self {
+            Language::Es => "En uso",
+            Language::En => "Active",
+        }
+    }
+
+    pub fn library_apply(&self) -> &'static str {
+        match self {
+            Language::Es => "Aplicar",
+            Language::En => "Apply",
+        }
+    }
+
+    pub fn library_filter_all(&self) -> &'static str {
+        match self {
+            Language::Es => "Todos",
+            Language::En => "All",
+        }
+    }
+
+    pub fn library_filter_live(&self) -> &'static str {
+        match self {
+            Language::Es => "Animados",
+            Language::En => "Live",
+        }
+    }
+
+    pub fn library_filter_static(&self) -> &'static str {
+        match self {
+            Language::Es => "Estáticos",
+            Language::En => "Static",
+        }
+    }
+
+    pub fn library_filter_downloaded(&self) -> &'static str {
+        match self {
+            Language::Es => "Descargados",
+            Language::En => "Downloaded",
+        }
+    }
+
+    pub fn library_filter_favorites(&self) -> &'static str {
+        match self {
+            Language::Es => "Favoritos",
+            Language::En => "Favorites",
+        }
+    }
+
+    pub fn library_favorites_empty(&self) -> &'static str {
+        match self {
+            Language::Es => "No tienes fondos favoritos aún",
+            Language::En => "No favorite wallpapers yet",
+        }
+    }
+
+    pub fn library_favorites_empty_desc(&self) -> &'static str {
+        match self {
+            Language::Es => "Haz clic en el corazón de cualquier fondo para guardarlo aquí",
+            Language::En => "Click the heart icon on any wallpaper to add it here",
+        }
+    }
+
+    pub fn library_fav_add(&self) -> &'static str {
+        match self {
+            Language::Es => "Añadir a favoritos",
+            Language::En => "Add to favorites",
+        }
+    }
+
+    pub fn library_fav_remove(&self) -> &'static str {
+        match self {
+            Language::Es => "Quitar de favoritos",
+            Language::En => "Remove from favorites",
+        }
+    }
+
+    pub fn library_sort_newest(&self) -> &'static str {
+        match self {
+            Language::Es => "Más recientes",
+            Language::En => "Newest",
+        }
+    }
+
+    pub fn library_sort_oldest(&self) -> &'static str {
+        match self {
+            Language::Es => "Más antiguos",
+            Language::En => "Oldest",
+        }
+    }
+
+    pub fn library_filter_empty(&self) -> &'static str {
+        match self {
+            Language::Es => "No se encontraron fondos en esta categoría o búsqueda",
+            Language::En => "No wallpapers found in this category or search",
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn library_btn_delete(&self) -> &'static str {
+        match self {
+            Language::Es => "Eliminar",
+            Language::En => "Delete",
+        }
+    }
+
+    pub fn library_deleted_toast(&self) -> &'static str {
+        match self {
+            Language::Es => "Fondo eliminado de la biblioteca",
+            Language::En => "Wallpaper removed from library",
+        }
+    }
+
+    // --- Monitors View ---
+    pub fn monitors_title(&self) -> &'static str {
+        match self {
+            Language::Es => "Visualizador Interactivo de Pantallas",
+            Language::En => "Interactive Display Visualizer",
+        }
+    }
+
+    pub fn monitors_desc(&self) -> &'static str {
+        #[cfg(target_os = "macos")]
+        return match self {
+            Language::Es => "Representación a escala de tus pantallas detectadas en macOS. Configura fondos y escalado independiente:",
+            Language::En => "True-to-scale layout of detected macOS displays. Configure wallpapers and scaling independently:",
+        };
+        #[cfg(not(target_os = "macos"))]
+        return match self {
+            Language::Es => "Representación a escala de tus pantallas detectadas en COSMIC. Configura fondos y escalado independiente:",
+            Language::En => "True-to-scale layout of detected COSMIC displays. Configure wallpapers and scaling independently:",
+        };
+    }
+
+    pub fn monitors_screen_name(&self, name: &str) -> String {
+        match self {
+            Language::Es => format!("Pantalla {}", name),
+            Language::En => format!("Display {}", name),
+        }
+    }
+
+    pub fn monitors_screen_idle(&self, name: &str) -> String {
+        #[cfg(target_os = "macos")]
+        return match self {
+            Language::Es => format!("Pantalla {}\n(Escritorio macOS)", name),
+            Language::En => format!("Display {}\n(macOS Desktop)", name),
+        };
+        #[cfg(not(target_os = "macos"))]
+        return match self {
+            Language::Es => format!("Pantalla {}\n(Escritorio COSMIC)", name),
+            Language::En => format!("Display {}\n(COSMIC Desktop)", name),
+        };
+    }
+
+    pub fn monitors_stop(&self) -> &'static str {
+        match self {
+            Language::Es => "Detener",
+            Language::En => "Stop",
+        }
+    }
+
+    // --- Bottom Bar ("Now Playing") ---
+    pub fn bar_idle_title(&self) -> &'static str {
+        match self {
+            Language::Es => "Ningún fondo en reproducción",
+            Language::En => "No wallpaper playing",
+        }
+    }
+
+    pub fn bar_idle_desc(&self) -> &'static str {
+        #[cfg(target_os = "macos")]
+        return match self {
+            Language::Es => "Escritorio macOS estándar",
+            Language::En => "Standard macOS desktop",
+        };
+        #[cfg(not(target_os = "macos"))]
+        return match self {
+            Language::Es => "Escritorio COSMIC estándar",
+            Language::En => "Standard COSMIC desktop",
+        };
+    }
+
+    pub fn bar_active_title_default(&self) -> &'static str {
+        match self {
+            Language::Es => "Fondo Activo",
+            Language::En => "Active Wallpaper",
+        }
+    }
+
+    pub fn bar_display_label(&self, outputs: &str) -> String {
+        match self {
+            Language::Es => format!("Pantalla: {}", outputs),
+            Language::En => format!("Display: {}", outputs),
+        }
+    }
+
+    pub fn bar_resume(&self) -> &'static str {
+        match self {
+            Language::Es => "Reanudar",
+            Language::En => "Resume",
+        }
+    }
+
+    pub fn bar_pause(&self) -> &'static str {
+        match self {
+            Language::Es => "Pausar",
+            Language::En => "Pause",
+        }
+    }
+
+    pub fn bar_prev(&self) -> &'static str {
+        match self {
+            Language::Es => "Fondo anterior",
+            Language::En => "Previous wallpaper",
+        }
+    }
+
+    pub fn bar_next(&self) -> &'static str {
+        match self {
+            Language::Es => "Siguiente fondo",
+            Language::En => "Next wallpaper",
+        }
+    }
+
+    pub fn bar_muted(&self) -> &'static str {
+        match self {
+            Language::Es => "Silenciado",
+            Language::En => "Muted",
+        }
+    }
+
+    pub fn bar_audio_active(&self) -> &'static str {
+        match self {
+            Language::Es => "Sonido Activo",
+            Language::En => "Audio On",
+        }
+    }
+
+    pub fn bar_stop(&self) -> &'static str {
+        match self {
+            Language::Es => "Detener",
+            Language::En => "Stop",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn bar_gpu_accel(&self, hwdec: &str) -> String {
+        match self {
+            Language::Es => format!("Aceleración GPU: {}", hwdec),
+            Language::En => format!("GPU Acceleration: {}", hwdec),
+        }
+    }
+
+    pub fn bar_wayland_tag(&self) -> &'static str {
+        #[cfg(target_os = "macos")]
+        return "macOS Desktop Layer";
+
+        #[cfg(not(target_os = "macos"))]
+        "Wayland Layer-Shell"
+    }
+
+    // --- Settings View ---
+    pub fn settings_title(&self) -> &'static str {
+        match self {
+            Language::Es => "Ajustes del Sistema",
+            Language::En => "System Settings",
+        }
+    }
+
+    pub fn settings_lang_title(&self) -> &'static str {
+        match self {
+            Language::Es => "Idioma",
+            Language::En => "Language",
+        }
+    }
+
+    pub fn settings_lang_desc(&self) -> &'static str {
+        match self {
+            Language::Es => "Selecciona el idioma de la aplicación. El cambio se aplica inmediatamente sin reiniciar.",
+            Language::En => "Select the application language. Changes take effect instantly without restarting.",
+        }
+    }
+
+    pub fn settings_integration_title(&self) -> &'static str {
+        match self {
+            Language::Es => "Integración y Rendimiento",
+            Language::En => "Integration & Performance",
+        }
+    }
+
+    pub fn settings_autostart(&self) -> &'static str {
+        match self {
+            Language::Es => "Iniciar el fondo automáticamente al iniciar sesión",
+            Language::En => "Start the wallpaper automatically at login",
+        }
+    }
+
+    pub fn settings_smart_pause(&self) -> &'static str {
+        match self {
+            Language::Es => "Pausar automáticamente mientras se ejecutan juegos compatibles (Smart Pause)",
+            Language::En => "Automatically pause while supported games are running (Smart Pause)",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_auto_pause(&self) -> &'static str {
+        match self {
+            Language::Es => "Pausar automáticamente si el escritorio está oculto",
+            Language::En => "Automatically pause when desktop is hidden",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_auto_pause_desc(&self) -> &'static str {
+        match self {
+            Language::Es => "Detiene la reproducción para 0% de uso de GPU/CPU cuando las ventanas cubren el fondo",
+            Language::En => "Stops playback for 0% GPU/CPU usage when windows cover the wallpaper",
+        }
+    }
+
+    pub fn settings_keep_running(&self) -> &'static str {
+        match self {
+            Language::Es => "Mantener la reproducción activa al cerrar la ventana",
+            Language::En => "Keep wallpaper playback active when closing the window",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_auto_theme(&self) -> &'static str {
+        match self {
+            Language::Es => "Sincronizar color de acento del sistema con el fondo (Auto-Tema COSMIC)",
+            Language::En => "Synchronize system accent color with active wallpaper (COSMIC Auto-Theme)",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_auto_theme_desc(&self) -> &'static str {
+        match self {
+            Language::Es => "Extrae el color predominante del fondo y lo aplica como acento del sistema en COSMIC",
+            Language::En => "Extracts dominant wallpaper color and sets it as the COSMIC system accent",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_theme_mode_title(&self) -> &'static str {
+        match self {
+            Language::Es => "Modo de Apariencia del Sistema (COSMIC)",
+            Language::En => "System Appearance Mode (COSMIC)",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_theme_mode_auto(&self) -> &'static str {
+        match self {
+            Language::Es => "Automático",
+            Language::En => "Dynamic",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_theme_mode_auto_desc(&self) -> &'static str {
+        match self {
+            Language::Es => "Cambia dinámicamente entre Modo Oscuro y Claro según la claridad del fondo activo.",
+            Language::En => "Dynamically toggles Dark and Light mode based on active wallpaper luminance.",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_theme_mode_dark(&self) -> &'static str {
+        match self {
+            Language::Es => "Oscuro fijo",
+            Language::En => "Fixed Dark",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_theme_mode_dark_desc(&self) -> &'static str {
+        match self {
+            Language::Es => "El sistema permanece siempre en Modo Oscuro. Se mantiene fijo sin importar qué fondo apliques o cómo rote la lista.",
+            Language::En => "System permanently stays in Dark Mode. Persists regardless of wallpaper changes or playlist rotation.",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_theme_mode_light(&self) -> &'static str {
+        match self {
+            Language::Es => "Claro fijo",
+            Language::En => "Fixed Light",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_theme_mode_light_desc(&self) -> &'static str {
+        match self {
+            Language::Es => "El sistema permanece siempre en Modo Claro. Se mantiene fijo sin importar qué fondo apliques o cómo rote la lista.",
+            Language::En => "System permanently stays in Light Mode. Persists regardless of wallpaper changes or playlist rotation.",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_theme_mode_manual(&self) -> &'static str {
+        match self {
+            Language::Es => "Sin alterar",
+            Language::En => "System Default",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_theme_mode_manual_desc(&self) -> &'static str {
+        match self {
+            Language::Es => "Aura no modificará el modo oscuro/claro del sistema, respetando tu configuración manual o programada de COSMIC.",
+            Language::En => "Aura will not alter the system dark/light mode, respecting your manual or scheduled COSMIC settings.",
+        }
+    }
+
+    pub fn status_theme_mode_dark(&self) -> &'static str {
+        match self {
+            Language::Es => "✨ Modo Oscuro fijo aplicado y persistente",
+            Language::En => "✨ Fixed Dark Mode applied and persistent",
+        }
+    }
+
+    pub fn status_theme_mode_light(&self) -> &'static str {
+        match self {
+            Language::Es => "✨ Modo Claro fijo aplicado y persistente",
+            Language::En => "✨ Fixed Light Mode applied and persistent",
+        }
+    }
+
+    pub fn status_theme_mode_auto(&self) -> &'static str {
+        match self {
+            Language::Es => "✨ Modo Automático activado (sincronizado con fondo)",
+            Language::En => "✨ Dynamic Mode activated (synced with wallpaper)",
+        }
+    }
+
+    pub fn status_theme_mode_manual(&self) -> &'static str {
+        match self {
+            Language::Es => "✨ Modo del sistema sin alterar por Aura",
+            Language::En => "✨ System theme mode left unaltered by Aura",
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn settings_auto_dark(&self) -> &'static str {
+        match self {
+            Language::Es => "Cambiar automáticamente entre Modo Oscuro y Claro según la claridad del video",
+            Language::En => "Automatically toggle Dark and Light mode based on video luminance",
+        }
+    }
+
+    pub fn settings_monitored_folders(&self) -> &'static str {
+        match self {
+            Language::Es => "Carpetas Monitoreadas",
+            Language::En => "Monitored Folders",
+        }
+    }
+
+    pub fn settings_btn_add_folder(&self) -> &'static str {
+        match self {
+            Language::Es => "Añadir Carpeta",
+            Language::En => "Add Folder",
+        }
+    }
+
+    pub fn settings_btn_delete(&self) -> &'static str {
+        match self {
+            Language::Es => "Eliminar",
+            Language::En => "Remove",
+        }
+    }
+
+    pub fn settings_persistence_title(&self) -> &'static str {
+        match self {
+            Language::Es => "Persistencia en segundo plano",
+            Language::En => "Background Persistence",
+        }
+    }
+
+    pub fn settings_persistence_desc(&self) -> &'static str {
+        #[cfg(target_os = "macos")]
+        return match self {
+            Language::Es => "El reproductor de fondos continúa funcionando en segundo plano mientras la ventana está cerrada.",
+            Language::En => "Wallpaper playback continues in the background while the window is closed.",
+        };
+
+        #[cfg(not(target_os = "macos"))]
+        match self {
+            Language::Es => "El reproductor de fondos continúa funcionando en segundo plano mientras la ventana está cerrada.",
+            Language::En => "Wallpaper playback continues in the background while the window is closed.",
+        }
+    }
+
+    // --- About View ---
+    pub fn about_tagline(&self) -> &'static str {
+        match self {
+            Language::Es => "Gestor de fondos de escritorio estáticos y animados",
+            Language::En => "Static and animated desktop wallpaper manager",
+        }
+    }
+
+    pub fn about_version_info(&self) -> String {
+        let os = crate::engine::mpvpaper::detect_os_pretty_name();
+        #[cfg(target_os = "macos")]
+        let engine = "macOS Desktop Layer";
+        #[cfg(not(target_os = "macos"))]
+        let engine = "COSMIC Desktop";
+        match self {
+            Language::Es => format!("Versión {} • {} • Motor: {}", env!("CARGO_PKG_VERSION"), os, engine),
+            Language::En => format!("Version {} • {} • Engine: {}", env!("CARGO_PKG_VERSION"), os, engine),
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn about_details_title(&self) -> &'static str {
+        match self {
+            Language::Es => "Detalles de la Aplicación",
+            Language::En => "Application Details",
+        }
+    }
+
+    pub fn about_developer_lbl(&self) -> &'static str {
+        match self {
+            Language::Es => "Desarrollador:",
+            Language::En => "Developer:",
+        }
+    }
+
+    pub fn about_engine_lbl(&self) -> &'static str {
+        match self {
+            Language::Es => "Motor de escritorio:",
+            Language::En => "Desktop engine:",
+        }
+    }
+
+    pub fn about_github_btn(&self) -> &'static str {
+        match self {
+            Language::Es => "Github",
+            Language::En => "Github",
+        }
+    }
+
+    pub fn about_update_available(&self) -> &'static str {
+        match self {
+            Language::Es => "Nueva versión disponible:",
+            Language::En => "New version available:",
+        }
+    }
+
+    pub fn about_up_to_date(&self) -> &'static str {
+        match self {
+            Language::Es => "Sword Wallpaper está al día con la última versión.",
+            Language::En => "Sword Wallpaper is up to date.",
+        }
+    }
+
+    pub fn about_updating(&self) -> &'static str {
+        match self {
+            Language::Es => "Descargando e instalando actualización...",
+            Language::En => "Downloading and installing update...",
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn about_architecture_lbl(&self) -> &'static str {
+        match self {
+            Language::Es => "Arquitectura:",
+            Language::En => "Architecture:",
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn about_summary_desc(&self) -> &'static str {
+        match self {
+            Language::Es => "Aura fue concebido para transformar la experiencia de fondos de pantalla animados en Linux. Aprovechando el poder nativo de Rust y libcosmic, ofrece un rendimiento fluido de 60 FPS con huella de memoria ultraligera, decodificación completa por GPU y sincronización automática de color.",
+            Language::En => "Aura was engineered to redefine animated live wallpapers on Linux. Harnessing native Rust and libcosmic, it delivers smooth 60 FPS playback with minimal memory footprint, full GPU hardware acceleration, and dynamic cosmic color synchronization.",
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn about_donation_lbl(&self) -> &'static str {
+        match self {
+            Language::Es => "Donaciones:",
+            Language::En => "Donations:",
+        }
+    }
+
+    pub fn toast_update_available_action(&self) -> &'static str {
+        match self {
+            Language::Es => "Actualizar",
+            Language::En => "Update",
+        }
+    }
+
+    pub fn toast_restart_action(&self) -> &'static str {
+        match self {
+            Language::Es => "Reiniciar",
+            Language::En => "Restart",
+        }
+    }
+
+    // --- Explore View (Online Catalog) ---
+    pub fn explore_source_motionbgs(&self) -> &'static str {
+        match self {
+            Language::Es => "Live Wallpapers",
+            Language::En => "Live Wallpapers",
+        }
+    }
+
+    pub fn explore_source_bing(&self) -> &'static str {
+        match self {
+            Language::Es => "Bing del Día (4K)",
+            Language::En => "Bing Daily (4K)",
+        }
+    }
+
+    pub fn explore_source_wallhaven(&self) -> &'static str {
+        match self {
+            Language::Es => "Wallhaven (Top 4K)",
+            Language::En => "Wallhaven (Top 4K)",
+        }
+    }
+
+    pub fn explore_source_minimalistic(&self) -> &'static str {
+        match self {
+            Language::Es => "Minimalista",
+            Language::En => "Minimalist",
+        }
+    }
+
+    pub fn explore_source_wikimedia(&self) -> &'static str {
+        match self {
+            Language::Es => "Wikimedia Commons",
+            Language::En => "Wikimedia Commons",
+        }
+    }
+
+    pub fn explore_wikimedia_subtitle(&self) -> &'static str {
+        match self {
+            Language::Es => "Imágenes grandes con autor y licencia del catálogo abierto de Wikimedia Commons",
+            Language::En => "Large images with author and license from the open Wikimedia Commons catalog",
+        }
+    }
+
+    pub fn explore_search_wikimedia_placeholder(&self) -> &'static str {
+        match self {
+            Language::Es => "Buscar paisajes, espacio, naturaleza...",
+            Language::En => "Search landscapes, space, nature...",
+        }
+    }
+
+    pub fn explore_livewallmax_link(&self) -> &'static str {
+        match self {
+            Language::Es => "Más videos MP4",
+            Language::En => "More MP4 videos",
+        }
+    }
+
+    pub fn explore_motionbgs_subtitle(&self) -> &'static str {
+        match self {
+            Language::Es => "Catálogo de 9,400+ fondos animados en bucle 4K y HD de MotionBGS",
+            Language::En => "Catalog of 9,400+ 4K and HD looping animated wallpapers from MotionBGS",
+        }
+    }
+
+    pub fn explore_search_motionbgs_placeholder(&self) -> &'static str {
+        match self {
+            Language::Es => "Buscar fondos animados (ej: anime, cyberpunk, espacio, rain)...",
+            Language::En => "Search live wallpapers (e.g. anime, cyberpunk, space, rain)...",
+        }
+    }
+
+    pub fn explore_minimalistic_subtitle(&self) -> &'static str {
+        match self {
+            Language::Es => "Colección curada de 300+ fondos de naturaleza digital y arte plano",
+            Language::En => "Curated collection of 300+ digital nature & flat art wallpapers",
+        }
+    }
+
+    pub fn explore_search_minimal_placeholder(&self) -> &'static str {
+        match self {
+            Language::Es => "Buscar por título o artista...",
+            Language::En => "Search by title or artist...",
+        }
+    }
+
+    pub fn explore_btn_download(&self) -> &'static str {
+        match self {
+            Language::Es => "Descargar",
+            Language::En => "Download",
+        }
+    }
+
+    pub fn explore_btn_downloading(&self) -> &'static str {
+        match self {
+            Language::Es => "Descargando...",
+            Language::En => "Downloading...",
+        }
+    }
+
+    pub fn explore_btn_cancel(&self) -> &'static str {
+        match self {
+            Language::Es => "Cancelar",
+            Language::En => "Cancel",
+        }
+    }
+
+    pub fn explore_btn_apply(&self) -> &'static str {
+        match self {
+            Language::Es => "Aplicar",
+            Language::En => "Apply",
+        }
+    }
+
+    pub fn explore_badge_active(&self) -> &'static str {
+        match self {
+            Language::Es => "En Uso",
+            Language::En => "Active",
+        }
+    }
+
+    pub fn explore_featured_today(&self) -> &'static str {
+        match self {
+            Language::Es => "Foto destacada de hoy en 4K UHD",
+            Language::En => "Daily featured photo in 4K UHD",
+        }
+    }
+
+    pub fn explore_recent_title(&self) -> &'static str {
+        match self {
+            Language::Es => "Galería y archivo 4K",
+            Language::En => "4K gallery & archive",
+        }
+    }
+
+    pub fn explore_loading(&self) -> &'static str {
+        match self {
+            Language::Es => "Cargando catálogo en línea...",
+            Language::En => "Loading online catalog...",
+        }
+    }
+
+    pub fn explore_error_prefix(&self) -> &'static str {
+        match self {
+            Language::Es => "No se pudo conectar con el catálogo en línea:",
+            Language::En => "Could not connect to online catalog:",
+        }
+    }
+
+    pub fn explore_btn_retry(&self) -> &'static str {
+        match self {
+            Language::Es => "Reintentar conexión",
+            Language::En => "Retry connection",
+        }
+    }
+
+    pub fn explore_toast_downloaded(&self) -> &'static str {
+        match self {
+            Language::Es => "Fondo descargado con éxito",
+            Language::En => "Wallpaper downloaded successfully",
+        }
+    }
+
+    pub fn open_in_file_manager(&self) -> &'static str {
+        match self {
+            Language::Es => "Abrir carpeta",
+            Language::En => "Open folder",
+        }
+    }
+
+    pub fn toast_show_in_files(&self) -> &'static str {
+        match self {
+            Language::Es => "Ver en archivos",
+            Language::En => "Show in files",
+        }
+    }
+
+    pub fn toast_folder_opened(&self) -> &'static str {
+        match self {
+            Language::Es => "Carpeta de fondos abierta en el Gestor de Archivos",
+            Language::En => "Wallpapers folder opened in File Manager",
+        }
+    }
+
+    pub fn toast_folder_open_failed(&self) -> &'static str {
+        match self {
+            Language::Es => "No se pudo abrir la carpeta en el Gestor de Archivos",
+            Language::En => "Could not open folder in File Manager",
+        }
+    }
+
+    pub fn explore_btn_load_more(&self) -> &'static str {
+        match self {
+            Language::Es => "Cargar más fondos",
+            Language::En => "Load more wallpapers",
+        }
+    }
+
+    pub fn library_btn_load_more(&self) -> &'static str {
+        match self {
+            Language::Es => "Cargar más fondos",
+            Language::En => "Load more wallpapers",
+        }
+    }
+
+    pub fn explore_btn_loading_more(&self) -> &'static str {
+        match self {
+            Language::Es => "Cargando más fondos...",
+            Language::En => "Loading more wallpapers...",
+        }
+    }
+
+    pub fn explore_search_placeholder(&self) -> &'static str {
+        match self {
+            Language::Es => "Buscar en Wallhaven (ej: anime, cyberpunk, nature)...",
+            Language::En => "Search Wallhaven (e.g. anime, cyberpunk, nature)...",
+        }
+    }
+
+    pub fn explore_cat_all(&self) -> &'static str {
+        match self {
+            Language::Es => "Todos",
+            Language::En => "All",
+        }
+    }
+
+    pub fn explore_cat_anime(&self) -> &'static str {
+        match self {
+            Language::Es => "Anime",
+            Language::En => "Anime",
+        }
+    }
+
+    pub fn explore_cat_general(&self) -> &'static str {
+        match self {
+            Language::Es => "Naturaleza / General",
+            Language::En => "Nature / General",
+        }
+    }
+
+    pub fn explore_cat_games(&self) -> &'static str {
+        match self {
+            Language::Es => "Videojuegos",
+            Language::En => "Games",
+        }
+    }
+
+    pub fn explore_cat_nature(&self) -> &'static str {
+        match self {
+            Language::Es => "Naturaleza",
+            Language::En => "Nature",
+        }
+    }
+
+    pub fn explore_cat_space(&self) -> &'static str {
+        match self {
+            Language::Es => "Espacio / Sci-Fi",
+            Language::En => "Space / Sci-Fi",
+        }
+    }
+
+    pub fn explore_cat_cars(&self) -> &'static str {
+        match self {
+            Language::Es => "Autos",
+            Language::En => "Cars",
+        }
+    }
+
+    pub fn explore_cat_superhero(&self) -> &'static str {
+        match self {
+            Language::Es => "Superhéroes",
+            Language::En => "Superheroes",
+        }
+    }
+
+    pub fn explore_cat_fantasy(&self) -> &'static str {
+        match self {
+            Language::Es => "Fantasía",
+            Language::En => "Fantasy",
+        }
+    }
+
+    pub fn explore_cat_technology(&self) -> &'static str {
+        match self {
+            Language::Es => "Tecnología",
+            Language::En => "Technology",
+        }
+    }
+
+    pub fn explore_sort_top(&self) -> &'static str {
+        match self {
+            Language::Es => "Más Votados",
+            Language::En => "Top Rated",
+        }
+    }
+
+    pub fn explore_sort_hot(&self) -> &'static str {
+        match self {
+            Language::Es => "Tendencias",
+            Language::En => "Hot",
+        }
+    }
+
+    pub fn explore_sort_random(&self) -> &'static str {
+        match self {
+            Language::Es => "Aleatorio",
+            Language::En => "Random",
+        }
+    }
+
+    pub fn explore_res_all(&self) -> &'static str {
+        match self {
+            Language::Es => "Resolución: Todas",
+            Language::En => "Resolution: All",
+        }
+    }
+
+    pub fn explore_res_4k(&self) -> &'static str {
+        "4K UHD"
+    }
+
+    pub fn explore_res_2k(&self) -> &'static str {
+        "2K QHD"
+    }
+
+    pub fn explore_res_ultrawide(&self) -> &'static str {
+        "Ultrawide 21:9"
+    }
+
+    pub fn explore_res_1080p(&self) -> &'static str {
+        "1080p HD"
+    }
+
+    pub fn explore_resolution_label(&self) -> &'static str {
+        match self {
+            Language::Es => "Resolución:",
+            Language::En => "Resolution:",
+        }
+    }
+
+    // --- Tray (StatusNotifierItem) ---
+    #[allow(dead_code)]
+    pub fn tray_switcher(&self) -> &'static str {
+        match self {
+            Language::Es => "Selector Rápido de Fondos...",
+            Language::En => "Quick Wallpaper Switcher...",
+        }
+    }
+
+    pub fn tray_autostart(&self) -> &'static str {
+        match self {
+            Language::Es => "Iniciar automáticamente",
+            Language::En => "Start automatically",
+        }
+    }
+
+    pub fn tray_show_window(&self) -> &'static str {
+        match self {
+            Language::Es => "Mostrar ventana",
+            Language::En => "Show window",
+        }
+    }
+
+    pub fn tray_close(&self) -> &'static str {
+        match self {
+            Language::Es => "Cerrar",
+            Language::En => "Quit",
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn tray_open(&self) -> &'static str {
+        match self {
+            Language::Es => "Abrir Aura",
+            Language::En => "Open Aura",
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn tray_pause(&self) -> &'static str {
+        match self {
+            Language::Es => "Pausar Fondo",
+            Language::En => "Pause Wallpaper",
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn tray_resume(&self) -> &'static str {
+        match self {
+            Language::Es => "Reanudar Fondo",
+            Language::En => "Resume Wallpaper",
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn tray_next(&self) -> &'static str {
+        match self {
+            Language::Es => "Siguiente Fondo",
+            Language::En => "Next Wallpaper",
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn tray_stop(&self) -> &'static str {
+        match self {
+            Language::Es => "Detener Fondo",
+            Language::En => "Stop Wallpaper",
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn tray_quit(&self) -> &'static str {
+        match self {
+            Language::Es => "Salir de Aura",
+            Language::En => "Quit Aura",
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn tray_tooltip_idle(&self) -> &'static str {
+        match self {
+            Language::Es => "Sin fondo en reproducción",
+            Language::En => "No wallpaper playing",
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn tray_tooltip_playing(&self, name: &str) -> String {
+        match self {
+            Language::Es => format!("Reproduciendo: {}", name),
+            Language::En => format!("Playing: {}", name),
+        }
+    }
+
+    // --- Status Messages / Toasts ---
+    pub fn status_lang_changed(&self) -> &'static str {
+        match self {
+            Language::Es => "Idioma cambiado a Español",
+            Language::En => "Language switched to English",
+        }
+    }
+
+    pub fn status_applied(&self, output: &str, name: &str) -> String {
+        let display_name = if output == "*" {
+            self.monitors_all_displays()
+        } else {
+            output
+        };
+        match self {
+            Language::Es => format!("Fondo aplicado en {}: '{}'", display_name, name),
+            Language::En => format!("Wallpaper applied on {}: '{}'", display_name, name),
+        }
+    }
+
+    pub fn lockscreen_conversion_progress(&self, name: &str, output: &str, percent: u8) -> String {
+        let display_name = if output == "*" { self.monitors_all_displays() } else { output };
+        match self {
+            Language::Es => format!("Preparando '{}' para la pantalla de inicio · {} · {}%", name, display_name, percent),
+            Language::En => format!("Preparing '{}' for the login screen · {} · {}%", name, display_name, percent),
+        }
+    }
+
+    pub fn lockscreen_conversion_next(&self, name: &str, output: &str, count: usize) -> String {
+        let display_name = if output == "*" { self.monitors_all_displays() } else { output };
+        match self {
+            Language::Es if count > 1 => format!("Siguiente: '{}' · {} (+{})", name, display_name, count - 1),
+            Language::Es => format!("Siguiente: '{}' · {}", name, display_name),
+            Language::En if count > 1 => format!("Next: '{}' · {} (+{})", name, display_name, count - 1),
+            Language::En => format!("Next: '{}' · {}", name, display_name),
+        }
+    }
+
+    pub fn lockscreen_conversion_failed(&self, name: &str, output: &str) -> String {
+        let display_name = if output == "*" { self.monitors_all_displays() } else { output };
+        match self {
+            Language::Es => format!("No se pudo preparar '{}' para la pantalla de inicio en {}", name, display_name),
+            Language::En => format!("Could not prepare '{}' for the login screen on {}", name, display_name),
+        }
+    }
+
+    pub fn status_paused(&self) -> &'static str {
+        match self {
+            Language::Es => "Fondo pausado (0% GPU/CPU)",
+            Language::En => "Wallpaper paused (0% GPU/CPU)",
+        }
+    }
+
+    pub fn status_resumed(&self) -> &'static str {
+        match self {
+            Language::Es => "Fondo reanudado",
+            Language::En => "Wallpaper resumed",
+        }
+    }
+
+    pub fn status_stopped_output(&self, output: &str) -> String {
+        match self {
+            Language::Es => format!("Fondo detenido en {}", output),
+            Language::En => format!("Wallpaper stopped on {}", output),
+        }
+    }
+
+    pub fn status_stopped_all(&self) -> &'static str {
+        match self {
+            Language::Es => "Todos los fondos han sido detenidos",
+            Language::En => "All wallpapers have been stopped",
+        }
+    }
+
+    pub fn status_muted(&self) -> &'static str {
+        match self {
+            Language::Es => "Audio silenciado",
+            Language::En => "Audio muted",
+        }
+    }
+
+    pub fn status_unmuted(&self) -> &'static str {
+        match self {
+            Language::Es => "Audio activado",
+            Language::En => "Audio enabled",
+        }
+    }
+
+    pub fn status_folder_removed(&self, folder: &str) -> String {
+        match self {
+            Language::Es => format!("Carpeta eliminada: {}", folder),
+            Language::En => format!("Folder removed: {}", folder),
+        }
+    }
+
+    pub fn status_library_refreshed(&self) -> &'static str {
+        match self {
+            Language::Es => "Biblioteca actualizada",
+            Language::En => "Library updated",
+        }
+    }
+
+    pub fn status_video_added(&self, name: &str) -> String {
+        match self {
+            Language::Es => format!("Video añadido: {}", name),
+            Language::En => format!("Video added: {}", name),
+        }
+    }
+
+    pub fn status_folder_added(&self, folder: &str) -> String {
+        match self {
+            Language::Es => format!("Carpeta añadida: {}", folder),
+            Language::En => format!("Folder added: {}", folder),
+        }
+    }
+
+    pub fn status_videos_dropped(&self) -> &'static str {
+        match self {
+            Language::Es => "Videos añadidos a la biblioteca",
+            Language::En => "Videos added to library",
+        }
+    }
+
+    pub fn status_topology_updated(&self, count: usize) -> String {
+        match self {
+            Language::Es => format!("Topología de pantallas actualizada ({} monitores)", count),
+            Language::En => format!("Display topology updated ({} displays)", count),
+        }
+    }
+
+    pub fn status_game_paused(&self) -> &'static str {
+        match self {
+            Language::Es => "Modo Juego: Fondo pausado para máximo rendimiento",
+            Language::En => "Game Mode: Wallpaper paused for maximum performance",
+        }
+    }
+
+    pub fn status_game_resumed(&self) -> &'static str {
+        match self {
+            Language::Es => "Juego minimizado: Fondo reanudado",
+            Language::En => "Game minimized: Wallpaper resumed",
+        }
+    }
+
+    pub fn dialog_pick_video(&self) -> &'static str {
+        match self {
+            Language::Es => "Seleccionar Video de Fondo",
+            Language::En => "Select Wallpaper Video",
+        }
+    }
+
+    pub fn dialog_pick_folder(&self) -> &'static str {
+        match self {
+            Language::Es => "Seleccionar Carpeta con Videos",
+            Language::En => "Select Folder with Videos",
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn library_btn_remove_custom(&self) -> &'static str {
+        match self {
+            Language::Es => "Quitar",
+            Language::En => "Remove",
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn library_btn_delete_download(&self) -> &'static str {
+        match self {
+            Language::Es => "Eliminar",
+            Language::En => "Delete",
+        }
+    }
+
+    pub fn library_removed_toast(&self) -> &'static str {
+        match self {
+            Language::Es => "Fondo quitado de la biblioteca",
+            Language::En => "Wallpaper removed from library",
+        }
+    }
+
+    pub fn library_target_output_label(&self) -> &'static str {
+        match self {
+            Language::Es => "Pantalla destino:",
+            Language::En => "Target Display:",
+        }
+    }
+
+    pub fn monitors_apply_to_this(&self) -> &'static str {
+        match self {
+            Language::Es => "Elegir pantalla",
+            Language::En => "Select display",
+        }
+    }
+
+    pub fn monitors_all_displays(&self) -> &'static str {
+        match self {
+            Language::Es => "Todas las pantallas",
+            Language::En => "All Displays",
+        }
+    }
+
+    pub fn monitors_target_active(&self) -> &'static str {
+        match self {
+            Language::Es => "Destino activo",
+            Language::En => "Active Target",
+        }
+    }
+
+    pub fn scaling_fit(&self) -> &'static str {
+        match self {
+            Language::Es => "Ajustar",
+            Language::En => "Fit",
+        }
+    }
+
+    pub fn scaling_fill(&self) -> &'static str {
+        match self {
+            Language::Es => "Rellenar",
+            Language::En => "Fill",
+        }
+    }
+
+    pub fn scaling_stretch(&self) -> &'static str {
+        match self {
+            Language::Es => "Estirar",
+            Language::En => "Stretch",
+        }
+    }
+
+    pub fn status_scaling_changed(&self, output: &str, scaling: &str) -> String {
+        let display_name = if output == "*" {
+            self.monitors_all_displays()
+        } else {
+            output
+        };
+        match self {
+            Language::Es => format!("Modo de escala para {} cambiado a '{}'", display_name, scaling),
+            Language::En => format!("Scaling mode for {} changed to '{}'", display_name, scaling),
+        }
+    }
+
+    pub fn status_output_selected(&self, output: &str) -> String {
+        let display_name = if output == "*" {
+            self.monitors_all_displays()
+        } else {
+            output
+        };
+        match self {
+            Language::Es => format!("Pantalla seleccionada: {}", display_name),
+            Language::En => format!("Selected display: {}", display_name),
+        }
+    }
+
+    pub fn status_hwdec_selected(&self, hwdec: &str) -> String {
+        match self {
+            Language::Es => format!("Decodificador GPU: {}", hwdec),
+            Language::En => format!("GPU decoder: {}", hwdec),
+        }
+    }
+
+    pub fn status_gpu_selected(&self, gpu: &str) -> String {
+        let label = match gpu {
+            "discrete" => match self {
+                Language::Es => "Dedicada",
+                Language::En => "Dedicated",
+            },
+            "integrated" => match self {
+                Language::Es => "Integrada",
+                Language::En => "Integrated",
+            },
+            _ => match self {
+                Language::Es => "Automático",
+                Language::En => "Auto",
+            },
+        };
+        match self {
+            Language::Es => format!("Tarjeta GPU: {}", label),
+            Language::En => format!("GPU Card: {}", label),
+        }
+    }
+
+    pub fn status_interval_selected(&self, interval: u64) -> String {
+        match self {
+            Language::Es => format!("Intervalo de rotación: {} min", interval),
+            Language::En => format!("Rotation interval: {} min", interval),
+        }
+    }
+
+    pub fn status_rotation_order_selected(&self, order: &str) -> String {
+        match self {
+            Language::Es => format!("Orden de rotación: {}", if order == "random" { "Aleatorio" } else { "Secuencial" }),
+            Language::En => format!("Rotation order: {}", if order == "random" { "Random" } else { "Sequential" }),
+        }
+    }
+
+    pub fn status_pause_battery_enabled(&self) -> &'static str {
+        match self {
+            Language::Es => "Ahorro de batería activado",
+            Language::En => "Battery saver enabled",
+        }
+    }
+
+    pub fn status_pause_battery_disabled(&self) -> &'static str {
+        match self {
+            Language::Es => "Ahorro de batería desactivado",
+            Language::En => "Battery saver disabled",
+        }
+    }
+
+    pub fn settings_rotation_title(&self) -> &'static str {
+        match self {
+            Language::Es => "Rotación Automática de Fondos",
+            Language::En => "Playlist Auto-Rotation",
+        }
+    }
+
+    pub fn settings_rotation_desc(&self) -> &'static str {
+        match self {
+            Language::Es => "Cambia periódicamente de fondo entre los elementos de la biblioteca",
+            Language::En => "Periodically switch wallpapers from your library collection",
+        }
+    }
+
+    pub fn settings_rotation_toggle(&self) -> &'static str {
+        match self {
+            Language::Es => "Activar rotación automática",
+            Language::En => "Enable automatic rotation",
+        }
+    }
+
+    pub fn status_rotation_enabled(&self) -> &'static str {
+        match self {
+            Language::Es => "Rotación automática activada",
+            Language::En => "Automatic rotation enabled",
+        }
+    }
+
+    pub fn status_rotation_disabled(&self) -> &'static str {
+        match self {
+            Language::Es => "Rotación automática desactivada",
+            Language::En => "Automatic rotation disabled",
+        }
+    }
+
+    pub fn settings_interval_label(&self) -> &'static str {
+        match self {
+            Language::Es => "Intervalo de cambio:",
+            Language::En => "Switch Interval:",
+        }
+    }
+
+    pub fn settings_interval_custom_label(&self) -> &'static str {
+        match self {
+            Language::Es => "Personalizado:",
+            Language::En => "Custom:",
+        }
+    }
+
+    pub fn settings_interval_custom_placeholder(&self) -> &'static str {
+        match self {
+            Language::Es => "ej. 45",
+            Language::En => "e.g. 45",
+        }
+    }
+
+    pub fn settings_interval_mins_unit(&self) -> &'static str {
+        match self {
+            Language::Es => "min",
+            Language::En => "min",
+        }
+    }
+
+    pub fn settings_interval_apply(&self) -> &'static str {
+        match self {
+            Language::Es => "Aplicar",
+            Language::En => "Apply",
+        }
+    }
+
+    pub fn status_interval_invalid(&self) -> &'static str {
+        match self {
+            Language::Es => "El intervalo debe ser un número entre 1 y 1440 minutos",
+            Language::En => "Interval must be a number between 1 and 1440 minutes",
+        }
+    }
+
+    pub fn settings_order_label(&self) -> &'static str {
+        match self {
+            Language::Es => "Orden de reproducción:",
+            Language::En => "Playback Order:",
+        }
+    }
+
+    pub fn settings_order_random(&self) -> &'static str {
+        match self {
+            Language::Es => "Aleatorio",
+            Language::En => "Random",
+        }
+    }
+
+    pub fn settings_order_seq(&self) -> &'static str {
+        match self {
+            Language::Es => "Secuencial",
+            Language::En => "Sequential",
+        }
+    }
+
+    pub fn settings_rotation_source_label(&self) -> &'static str {
+        match self {
+            Language::Es => "Fondos a rotar:",
+            Language::En => "Wallpapers to rotate:",
+        }
+    }
+
+    pub fn settings_rotation_source_all(&self) -> &'static str {
+        match self {
+            Language::Es => "Toda la biblioteca",
+            Language::En => "All wallpapers",
+        }
+    }
+
+    pub fn settings_rotation_source_favs(&self) -> &'static str {
+        match self {
+            Language::Es => "Solo favoritos",
+            Language::En => "Only favorites",
+        }
+    }
+
+    pub fn settings_rotation_favs_empty_hint(&self) -> &'static str {
+        match self {
+            Language::Es => "⚠️ No tienes favoritos guardados. Se rotará toda la biblioteca hasta que marques fondos con el corazón.",
+            Language::En => "⚠️ No favorites saved yet. All wallpapers will cycle until you mark favorites with the heart.",
+        }
+    }
+
+    pub fn settings_rotation_favs_active_hint(&self, count: usize) -> String {
+        match self {
+            Language::Es => format!("✓ Rotando únicamente entre tus {} fondos favoritos.", count),
+            Language::En => format!("✓ Cycling only between your {} favorite wallpapers.", count),
+        }
+    }
+
+    pub fn status_rotation_source_all(&self) -> &'static str {
+        match self {
+            Language::Es => "Rotación configurada: toda la biblioteca",
+            Language::En => "Rotation set: all wallpapers",
+        }
+    }
+
+    pub fn status_rotation_source_favs(&self) -> &'static str {
+        match self {
+            Language::Es => "Rotación configurada: solo favoritos",
+            Language::En => "Rotation set: only favorites",
+        }
+    }
+
+    pub fn status_favs_rotation_started(&self, mins: u64) -> String {
+        match self {
+            Language::Es => format!("Rotación de favoritos activada (cada {} min)", mins),
+            Language::En => format!("Favorites rotation enabled (every {} min)", mins),
+        }
+    }
+
+    pub fn library_favs_rotation_title(&self) -> &'static str {
+        match self {
+            Language::Es => "Rotación de Favoritos",
+            Language::En => "Favorites Rotation",
+        }
+    }
+
+    pub fn library_favs_banner_desc_idle(&self, count: usize) -> String {
+        match self {
+            Language::Es => format!("Reproduce automáticamente solo tus {} fondos favoritos en bucle", count),
+            Language::En => format!("Automatically cycle only through your {} favorite wallpapers", count),
+        }
+    }
+
+    pub fn library_favs_banner_desc_active(&self, count: usize, interval: u64, is_random: bool) -> String {
+        let order_str = if is_random {
+            match self {
+                Language::Es => "Aleatorio",
+                Language::En => "Random",
+            }
+        } else {
+            match self {
+                Language::Es => "Secuencial",
+                Language::En => "Sequential",
+            }
+        };
+        match self {
+            Language::Es => format!("Rotando {} favoritos: cada {} min • {}", count, interval, order_str),
+            Language::En => format!("Rotating {} favorites: every {} min • {}", count, interval, order_str),
+        }
+    }
+
+    pub fn library_favs_start_rotation(&self) -> &'static str {
+        match self {
+            Language::Es => "Rotar favoritos",
+            Language::En => "Rotate favorites",
+        }
+    }
+
+    pub fn library_favs_stop_rotation(&self) -> &'static str {
+        match self {
+            Language::Es => "Detener rotación",
+            Language::En => "Stop rotation",
+        }
+    }
+
+    pub fn library_favs_rotation_settings(&self) -> &'static str {
+        match self {
+            Language::Es => "Ajustes de rotación",
+            Language::En => "Rotation settings",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_hwdec_title(&self) -> &'static str {
+        match self {
+            Language::Es => "Aceleración de Hardware (GPU)",
+            Language::En => "Hardware Acceleration (GPU)",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_hwdec_desc(&self) -> &'static str {
+        match self {
+            Language::Es => "Configura el decodificador de video para mpv (VA-API / NVDEC)",
+            Language::En => "Configure the video hardware decoder for mpv (VA-API / NVDEC)",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_gpu_card_title(&self) -> &'static str {
+        match self {
+            Language::Es => "Adaptador Gráfico (GPU)",
+            Language::En => "Graphics Adapter (GPU)",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_gpu_card_desc(&self) -> &'static str {
+        match self {
+            Language::Es => "Selecciona qué tarjeta gráfica ejecuta el renderizado en portátiles con gráficos híbridos (Intel / AMD / NVIDIA)",
+            Language::En => "Select which graphics card renders video on notebooks with hybrid graphics (Intel / AMD / NVIDIA)",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_gpu_auto(&self) -> &'static str {
+        match self {
+            Language::Es => "Automático",
+            Language::En => "Auto",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_gpu_integrated(&self) -> &'static str {
+        match self {
+            Language::Es => "Integrada (Ahorro)",
+            Language::En => "Integrated (Power Saver)",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_gpu_discrete(&self) -> &'static str {
+        match self {
+            Language::Es => "Dedicada (Rendimiento)",
+            Language::En => "Dedicated (Performance)",
+        }
+    }
+
+    pub fn settings_battery_title(&self) -> &'static str {
+        match self {
+            Language::Es => "Ahorro de Batería en Portátiles",
+            Language::En => "Laptop Battery Saver",
+        }
+    }
+
+    pub fn settings_battery_desc(&self) -> &'static str {
+        match self {
+            Language::Es => "Suspende automáticamente la reproducción al usar la batería del portátil",
+            Language::En => "Automatically suspend playback when running on laptop battery",
+        }
+    }
+
+    pub fn status_battery_paused(&self) -> &'static str {
+        match self {
+            Language::Es => "Ahorro de batería: Fondo pausado (0% GPU)",
+            Language::En => "Battery saver: Wallpaper paused (0% GPU)",
+        }
+    }
+
+    pub fn status_battery_resumed(&self) -> &'static str {
+        match self {
+            Language::Es => "Alimentación por CA conectada: Fondo reanudado",
+            Language::En => "AC power connected: Wallpaper resumed",
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn bar_volume(&self) -> &'static str {
+        match self {
+            Language::Es => "Volumen",
+            Language::En => "Volume",
+        }
+    }
+
+    // --- Quick Switcher HUD Settings ---
+    pub fn settings_switcher_title(&self) -> &'static str {
+        match self {
+            Language::Es => "Selector Rápido HUD",
+            Language::En => "Quick Switcher HUD",
+        }
+    }
+
+    pub fn settings_switcher_desc(&self) -> &'static str {
+        match self {
+            Language::Es => "Ventana emergente minimalista centrada para cambiar fondos al instante",
+            Language::En => "Minimalist centered popup window to switch wallpapers instantly",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_switcher_tray_click_label(&self) -> &'static str {
+        match self {
+            Language::Es => "Clic en el icono de la barra:",
+            Language::En => "Panel icon click action:",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_switcher_tray_opt_switcher(&self) -> &'static str {
+        match self {
+            Language::Es => "Selector Rápido HUD",
+            Language::En => "Quick Switcher HUD",
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn settings_switcher_tray_opt_main(&self) -> &'static str {
+        match self {
+            Language::Es => "Ventana Principal",
+            Language::En => "Main Window",
+        }
+    }
+
+    pub fn settings_switcher_filter_label(&self) -> &'static str {
+        match self {
+            Language::Es => "Fondos en el selector:",
+            Language::En => "Wallpapers in selector:",
+        }
+    }
+
+    pub fn settings_switcher_filter_all(&self) -> &'static str {
+        match self {
+            Language::Es => "Toda la biblioteca",
+            Language::En => "All wallpapers",
+        }
+    }
+
+    pub fn settings_switcher_filter_favs(&self) -> &'static str {
+        match self {
+            Language::Es => "Solo favoritos",
+            Language::En => "Only favorites",
+        }
+    }
+
+    pub fn settings_switcher_shortcut_title(&self) -> &'static str {
+        #[cfg(target_os = "macos")]
+        return match self {
+            Language::Es => "Atajo global o comando en macOS",
+            Language::En => "Global shortcut or command in macOS",
+        };
+        #[cfg(not(target_os = "macos"))]
+        return match self {
+            Language::Es => "Atajo global en COSMIC Desktop",
+            Language::En => "Global shortcut in COSMIC Desktop",
+        };
+    }
+
+    pub fn settings_switcher_shortcut_desc(&self) -> &'static str {
+        #[cfg(target_os = "macos")]
+        return match self {
+            Language::Es => "Puedes abrir el selector ejecutando 'sword switcher' o configurando un atajo en Ajustes del Sistema → Teclado:",
+            Language::En => "You can open the switcher running 'sword switcher' or by configuring a shortcut in System Settings → Keyboard:",
+        };
+        #[cfg(not(target_os = "macos"))]
+        return match self {
+            Language::Es => "Puedes abrir el HUD con una combinación de teclas añadiendo en Configuración de COSMIC → Teclado → Atajos personalizados:",
+            Language::En => "You can open the HUD with a key combo by adding in COSMIC Settings → Keyboard → Custom shortcuts:",
+        };
+    }
+
+    pub fn settings_switcher_copy_cmd(&self) -> &'static str {
+        match self {
+            Language::Es => "Copiar comando",
+            Language::En => "Copy command",
+        }
+    }
+
+    pub fn settings_switcher_copied(&self) -> &'static str {
+        match self {
+            Language::Es => "Comando copiado al portapapeles: sword switcher",
+            Language::En => "Command copied to clipboard: sword switcher",
+        }
+    }
+
+    pub fn settings_switcher_test_hud(&self) -> &'static str {
+        match self {
+            Language::Es => "⚡ Probar Selector HUD",
+            Language::En => "⚡ Test HUD Switcher",
+        }
+    }
+
+    pub fn settings_switcher_position_label(&self) -> &'static str {
+        match self {
+            Language::Es => "Posición en pantalla:",
+            Language::En => "Screen position:",
+        }
+    }
+
+    pub fn settings_switcher_pos_top(&self) -> &'static str {
+        match self {
+            Language::Es => "Arriba",
+            Language::En => "Top",
+        }
+    }
+
+    pub fn settings_switcher_pos_bottom(&self) -> &'static str {
+        match self {
+            Language::Es => "Abajo",
+            Language::En => "Bottom",
+        }
+    }
+
+    pub fn settings_switcher_pos_left(&self) -> &'static str {
+        match self {
+            Language::Es => "Izquierda",
+            Language::En => "Left",
+        }
+    }
+
+    pub fn settings_switcher_pos_right(&self) -> &'static str {
+        match self {
+            Language::Es => "Derecha",
+            Language::En => "Right",
+        }
+    }
+
+    pub fn settings_switcher_style_label(&self) -> &'static str {
+        match self {
+            Language::Es => "Estilo del HUD:",
+            Language::En => "HUD Style:",
+        }
+    }
+
+    pub fn settings_switcher_style_classic(&self) -> &'static str {
+        match self {
+            Language::Es => "Clásico",
+            Language::En => "Classic",
+        }
+    }
+
+    pub fn settings_switcher_style_cinematic(&self) -> &'static str {
+        match self {
+            Language::Es => "Cinemático",
+            Language::En => "Cinematic",
+        }
+    }
+
+    pub fn settings_switcher_style_cinematic_desc(&self) -> &'static str {
+        match self {
+            Language::Es => "Carrusel inmersivo a pantalla completa con tarjetas inclinadas y efecto coverflow",
+            Language::En => "Fullscreen immersive carousel with skewed cards and coverflow effect",
+        }
+    }
+
+    pub fn settings_switcher_style_honeycomb(&self) -> &'static str {
+        match self {
+            Language::Es => "Panal de Abeja",
+            Language::En => "Honeycomb",
+        }
+    }
+
+    pub fn settings_switcher_style_honeycomb_desc(&self) -> &'static str {
+        match self {
+            Language::Es => "Malla hexagonal panorámica con miniaturas optimizadas y desplazamiento fluido",
+            Language::En => "Panoramic hexagonal mesh with optimized thumbnails and fluid scrolling",
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn switcher_cinematic_nav_hint(&self) -> &'static str {
+        match self {
+            Language::Es => "← → Navegar  ·  Enter Aplicar  ·  Espacio Pausa  ·  F Favorito  ·  Esc Salir",
+            Language::En => "← → Navigate  ·  Enter Apply  ·  Space Pause  ·  F Favorite  ·  Esc Exit",
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_language_from_code() {
+        assert_eq!(Language::from_code("es"), Language::Es);
+        assert_eq!(Language::from_code("ES"), Language::Es);
+        assert_eq!(Language::from_code("spanish"), Language::Es);
+        assert_eq!(Language::from_code("español"), Language::Es);
+        assert_eq!(Language::from_code("en"), Language::En);
+        assert_eq!(Language::from_code("EN"), Language::En);
+        assert_eq!(Language::from_code("english"), Language::En);
+        assert_eq!(Language::from_code("fr"), Language::En);
+        assert_eq!(Language::from_code(""), Language::En);
+    }
+
+    #[test]
+    fn test_language_code() {
+        assert_eq!(Language::Es.code(), "es");
+        assert_eq!(Language::En.code(), "en");
+    }
+
+    #[test]
+    fn test_translations_non_empty() {
+        for lang in &[Language::Es, Language::En] {
+            assert!(!lang.nav_library().is_empty());
+            assert!(!lang.nav_explore().is_empty());
+            assert!(!lang.nav_monitors().is_empty());
+            assert!(!lang.nav_settings().is_empty());
+            assert!(!lang.nav_about().is_empty());
+            assert!(!lang.header_add_video().is_empty());
+            assert!(!lang.header_add_folder().is_empty());
+            assert!(!lang.library_search_placeholder().is_empty());
+            assert!(!lang.library_empty_title().is_empty());
+            assert!(!lang.settings_title().is_empty());
+            assert!(!lang.about_tagline().is_empty());
+            assert!(!lang.tray_switcher().is_empty());
+            assert!(!lang.tray_open().is_empty());
+            assert!(!lang.tray_autostart().is_empty());
+            assert!(!lang.tray_show_window().is_empty());
+            assert!(!lang.tray_close().is_empty());
+            assert!(!lang.tray_quit().is_empty());
+            assert!(!lang.status_paused().is_empty());
+            assert!(!lang.status_resumed().is_empty());
+            assert!(!lang.explore_btn_load_more().is_empty());
+            assert!(!lang.explore_btn_loading_more().is_empty());
+            assert!(!lang.explore_search_placeholder().is_empty());
+            assert!(!lang.explore_cat_all().is_empty());
+            assert!(!lang.explore_cat_anime().is_empty());
+            assert!(!lang.explore_cat_general().is_empty());
+            assert!(!lang.explore_sort_top().is_empty());
+            assert!(!lang.explore_sort_hot().is_empty());
+            assert!(!lang.explore_sort_random().is_empty());
+            assert!(!lang.explore_source_minimalistic().is_empty());
+            assert!(!lang.explore_source_motionbgs().is_empty());
+            assert!(!lang.explore_btn_cancel().is_empty());
+            assert!(!lang.explore_motionbgs_subtitle().is_empty());
+            assert!(!lang.explore_search_motionbgs_placeholder().is_empty());
+            assert!(!lang.explore_cat_games().is_empty());
+            assert!(!lang.explore_cat_nature().is_empty());
+            assert!(!lang.explore_cat_space().is_empty());
+            assert!(!lang.explore_cat_cars().is_empty());
+            assert!(!lang.explore_cat_superhero().is_empty());
+            assert!(!lang.explore_cat_fantasy().is_empty());
+            assert!(!lang.explore_cat_technology().is_empty());
+            assert!(!lang.explore_minimalistic_subtitle().is_empty());
+            assert!(!lang.explore_search_minimal_placeholder().is_empty());
+            assert!(!lang.library_filter_all().is_empty());
+            assert!(!lang.library_filter_live().is_empty());
+            assert!(!lang.library_filter_static().is_empty());
+            assert!(!lang.library_filter_downloaded().is_empty());
+            assert!(!lang.library_filter_empty().is_empty());
+            assert!(!lang.library_btn_delete().is_empty());
+            assert!(!lang.library_deleted_toast().is_empty());
+            assert!(!lang.explore_res_all().is_empty());
+            assert!(!lang.explore_res_4k().is_empty());
+            assert!(!lang.explore_res_2k().is_empty());
+            assert!(!lang.explore_res_ultrawide().is_empty());
+            assert!(!lang.library_btn_remove_custom().is_empty());
+            assert!(!lang.library_btn_delete_download().is_empty());
+            assert!(!lang.library_removed_toast().is_empty());
+            assert!(!lang.library_target_output_label().is_empty());
+            assert!(!lang.monitors_apply_to_this().is_empty());
+            assert!(!lang.monitors_all_displays().is_empty());
+            assert!(!lang.monitors_target_active().is_empty());
+            assert!(!lang.scaling_fit().is_empty());
+            assert!(!lang.scaling_fill().is_empty());
+            assert!(!lang.scaling_stretch().is_empty());
+            assert!(!lang.status_pause_battery_enabled().is_empty());
+            assert!(!lang.status_pause_battery_disabled().is_empty());
+            assert!(!lang.settings_rotation_title().is_empty());
+            assert!(!lang.settings_rotation_desc().is_empty());
+            assert!(!lang.settings_rotation_toggle().is_empty());
+            assert!(!lang.settings_interval_label().is_empty());
+            assert!(!lang.settings_interval_custom_label().is_empty());
+            assert!(!lang.settings_interval_custom_placeholder().is_empty());
+            assert!(!lang.settings_interval_mins_unit().is_empty());
+            assert!(!lang.settings_interval_apply().is_empty());
+            assert!(!lang.status_interval_invalid().is_empty());
+            assert!(!lang.settings_order_label().is_empty());
+            assert!(!lang.settings_order_random().is_empty());
+            assert!(!lang.settings_order_seq().is_empty());
+            assert!(!lang.settings_rotation_source_label().is_empty());
+            assert!(!lang.settings_rotation_source_all().is_empty());
+            assert!(!lang.settings_rotation_source_favs().is_empty());
+            assert!(!lang.settings_rotation_favs_empty_hint().is_empty());
+            assert!(!lang.status_rotation_source_all().is_empty());
+            assert!(!lang.status_rotation_source_favs().is_empty());
+            assert!(!lang.library_favs_rotation_title().is_empty());
+            assert!(!lang.library_favs_banner_desc_idle(1).is_empty());
+            assert!(!lang.library_favs_start_rotation().is_empty());
+            assert!(!lang.library_favs_stop_rotation().is_empty());
+            assert!(!lang.library_favs_rotation_settings().is_empty());
+            #[cfg(not(target_os = "macos"))]
+            {
+                assert!(!lang.settings_hwdec_title().is_empty());
+                assert!(!lang.settings_hwdec_desc().is_empty());
+                assert!(!lang.settings_gpu_card_title().is_empty());
+                assert!(!lang.settings_gpu_card_desc().is_empty());
+                assert!(!lang.settings_gpu_auto().is_empty());
+                assert!(!lang.settings_gpu_integrated().is_empty());
+                assert!(!lang.settings_gpu_discrete().is_empty());
+            }
+            assert!(!lang.status_gpu_selected("discrete").is_empty());
+            assert!(!lang.settings_battery_title().is_empty());
+            assert!(!lang.settings_battery_desc().is_empty());
+            assert!(!lang.status_battery_paused().is_empty());
+            assert!(!lang.status_battery_resumed().is_empty());
+            #[cfg(not(target_os = "macos"))]
+            {
+                assert!(!lang.settings_auto_pause().is_empty());
+                assert!(!lang.settings_auto_pause_desc().is_empty());
+            }
+            assert!(!lang.bar_volume().is_empty());
+            assert!(!lang.bar_prev().is_empty());
+            assert!(!lang.bar_next().is_empty());
+            assert!(!lang.settings_switcher_title().is_empty());
+            assert!(!lang.settings_switcher_desc().is_empty());
+            #[cfg(not(target_os = "macos"))]
+            {
+                assert!(!lang.settings_switcher_tray_click_label().is_empty());
+                assert!(!lang.settings_switcher_tray_opt_switcher().is_empty());
+                assert!(!lang.settings_switcher_tray_opt_main().is_empty());
+            }
+            assert!(!lang.settings_switcher_filter_label().is_empty());
+            assert!(!lang.settings_switcher_filter_all().is_empty());
+            assert!(!lang.settings_switcher_filter_favs().is_empty());
+            assert!(!lang.settings_switcher_shortcut_title().is_empty());
+            assert!(!lang.settings_switcher_shortcut_desc().is_empty());
+            assert!(!lang.settings_switcher_copy_cmd().is_empty());
+            assert!(!lang.settings_switcher_copied().is_empty());
+            assert!(!lang.settings_switcher_position_label().is_empty());
+            assert!(!lang.settings_switcher_pos_top().is_empty());
+            assert!(!lang.settings_switcher_pos_bottom().is_empty());
+            assert!(!lang.settings_switcher_pos_left().is_empty());
+            assert!(!lang.settings_switcher_pos_right().is_empty());
+            assert!(!lang.settings_switcher_style_label().is_empty());
+            assert!(!lang.settings_switcher_style_classic().is_empty());
+            assert!(!lang.settings_switcher_style_cinematic().is_empty());
+            assert!(!lang.settings_switcher_style_cinematic_desc().is_empty());
+            assert!(!lang.settings_switcher_style_honeycomb().is_empty());
+            assert!(!lang.settings_switcher_style_honeycomb_desc().is_empty());
+            assert!(!lang.switcher_cinematic_nav_hint().is_empty());
+        }
+    }
+
+    #[test]
+    fn test_dynamic_formatting() {
+        assert_eq!(Language::Es.header_wallpapers_count(5), "(5 fondos)");
+        assert_eq!(Language::En.header_wallpapers_count(5), "(5 wallpapers)");
+        assert!(Language::Es.status_applied("DP-1", "ocean.mp4").contains("DP-1"));
+        assert!(Language::En.status_applied("DP-1", "ocean.mp4").contains("ocean.mp4"));
+        assert!(Language::Es.status_applied("*", "ocean.mp4").contains("Todas las pantallas"));
+        assert!(Language::En.status_applied("*", "ocean.mp4").contains("All Displays"));
+        assert!(Language::Es.status_output_selected("*").contains("Todas las pantallas"));
+        assert!(Language::En.status_output_selected("*").contains("All Displays"));
+        assert!(Language::Es.about_version_info().contains("Motor:"));
+        assert!(Language::En.about_version_info().contains("Engine:"));
+        assert!(!Language::Es.settings_autostart().is_empty());
+        assert!(!Language::En.settings_autostart().is_empty());
+    }
+
+    #[test]
+    fn test_clean_language_titles() {
+        assert_eq!(Language::Es.settings_lang_title(), "Idioma");
+        assert_eq!(Language::En.settings_lang_title(), "Language");
+        assert!(!Language::Es.settings_lang_title().contains('/'));
+        assert!(!Language::En.settings_lang_title().contains('/'));
+        assert_eq!(Language::Es.library_btn_load_more(), "Cargar más fondos");
+        assert_eq!(Language::En.library_btn_load_more(), "Load more wallpapers");
+    }
+}

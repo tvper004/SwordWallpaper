@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.5
+Type=Application
+Name=Sword Wallpaper
+GenericName=Wallpaper Manager
+Comment=Static and animated wallpaper manager
+Exec=aura
+Icon=io.github.antwny.aura
+Terminal=false
+StartupNotify=true
+Categories=Settings;DesktopSettings;
+Keywords=wallpaper;live;video;cosmic;popos;animated;background;
