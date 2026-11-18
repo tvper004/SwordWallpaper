@@ -134,6 +134,53 @@ pub static THUMB_HANDLE_CACHE: LazyLock<Mutex<LruMemoryCache<String, cosmic::ice
 
 static CINEMATIC_IN_FLIGHT: LazyLock<Mutex<HashSet<PathBuf>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
 static HONEYCOMB_IN_FLIGHT: LazyLock<Mutex<HashSet<PathBuf>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
+static FAILED_ANIM_CACHE: LazyLock<Mutex<HashSet<PathBuf>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
+
+const MAX_FFMPEG_CONCURRENT: usize = 2;
+static FFMPEG_GATE: LazyLock<(Mutex<usize>, std::sync::Condvar)> =
+    LazyLock::new(|| (Mutex::new(0), std::sync::Condvar::new()));
+static ASYNC_FFMPEG_SEM: LazyLock<tokio::sync::Semaphore> =
+    LazyLock::new(|| tokio::sync::Semaphore::const_new(MAX_FFMPEG_CONCURRENT));
+
+struct FfmpegPermit;
+impl FfmpegPermit {
+    fn acquire() -> Self {
+        let (lock, cvar) = &*FFMPEG_GATE;
+        let mut active = match lock.lock() {
+            Ok(g) => g,
+            Err(p) => p.into_inner(),
+        };
+        while *active >= MAX_FFMPEG_CONCURRENT {
+            active = match cvar.wait(active) {
+                Ok(g) => g,
+                Err(p) => p.into_inner(),
+            };
+        }
+        *active += 1;
+        Self
+    }
+}
+impl Drop for FfmpegPermit {
+    fn drop(&mut self) {
+        let (lock, cvar) = &*FFMPEG_GATE;
+        let mut active = match lock.lock() {
+            Ok(g) => g,
+            Err(p) => p.into_inner(),
+        };
+        *active = active.saturating_sub(1);
+        cvar.notify_one();
+    }
+}
+
+fn is_anim_failed(path: &Path) -> bool {
+    FAILED_ANIM_CACHE.lock().map(|g| g.contains(path)).unwrap_or(false)
+}
+
+fn mark_anim_failed(path: &Path) {
+    if let Ok(mut g) = FAILED_ANIM_CACHE.lock() {
+        g.insert(path.to_path_buf());
+    }
+}
 
 pub fn cinematic_thumb_path(media_path: &Path, is_active: bool, accent_rgb: Option<[u8; 3]>) -> PathBuf {
     let cache_dir = get_cinematic_cache_dir();
@@ -412,6 +459,10 @@ pub fn cinematic_video_anim_handle(
         return Some(handle);
     }
 
+    if is_anim_failed(media_path) {
+        return None;
+    }
+
     let path_buf = media_path.to_path_buf();
     let mut in_flight = match CINEMATIC_ANIM_IN_FLIGHT.lock() {
         Ok(guard) => guard,
@@ -431,7 +482,7 @@ pub fn cinematic_video_anim_handle(
 }
 
 pub fn generate_cinematic_anim_sync(media_path: &Path) {
-    if !media_path.is_file() {
+    if !media_path.is_file() || is_anim_failed(media_path) {
         return;
     }
     let ext = media_path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
@@ -454,13 +505,18 @@ pub fn generate_cinematic_anim_sync(media_path: &Path) {
         return;
     }
 
+    let _permit = FfmpegPermit::acquire();
+
     let hash = format!("{:016x}", md5_simple(media_path.to_string_lossy().as_bytes()));
     let temp_dir = std::env::temp_dir().join(format!("aura_cin_{}_{}", std::process::id(), &hash[..8]));
     let _ = std::fs::create_dir_all(&temp_dir);
 
     let pattern = temp_dir.join("f_%02d.jpg");
     let mut cmd = std::process::Command::new("ffmpeg");
-    cmd.arg("-y")
+    cmd.arg("-nostdin")
+        .arg("-y")
+        .arg("-threads")
+        .arg("1")
         .arg("-ss")
         .arg("00:00:01")
         .arg("-i")
@@ -481,7 +537,10 @@ pub fn generate_cinematic_anim_sync(media_path: &Path) {
 
     if !temp_dir.join("f_01.jpg").exists() {
         let mut fallback_cmd = std::process::Command::new("ffmpeg");
-        fallback_cmd.arg("-y")
+        fallback_cmd.arg("-nostdin")
+            .arg("-y")
+            .arg("-threads")
+            .arg("1")
             .arg("-i")
             .arg(media_path)
             .arg("-t")
@@ -509,16 +568,32 @@ pub fn generate_cinematic_anim_sync(media_path: &Path) {
             let _ = std::fs::copy(fallback, &dest);
         }
     }
+    if last_good_frame.is_none() {
+        mark_anim_failed(media_path);
+    }
 
     let _ = std::fs::remove_dir_all(&temp_dir);
 }
 
 pub fn prewarm_cinematic_video_anims(media_paths: &[PathBuf]) {
     for path in media_paths {
-        let path = path.clone();
-        spawn_bg_task(move || {
-            generate_cinematic_anim_sync(&path);
-        });
+        if is_anim_failed(path) || cinematic_anim_frame_path(path, 0).exists() {
+            continue;
+        }
+        let path_buf = path.clone();
+        let mut in_flight = match CINEMATIC_ANIM_IN_FLIGHT.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        if in_flight.insert(path_buf.clone()) {
+            drop(in_flight);
+            spawn_bg_task(move || {
+                generate_cinematic_anim_sync(&path_buf);
+                if let Ok(mut guard) = CINEMATIC_ANIM_IN_FLIGHT.lock() {
+                    guard.remove(&path_buf);
+                }
+            });
+        }
     }
 }
 
@@ -840,6 +915,10 @@ pub fn honeycomb_anim_handle(
         return Some(handle);
     }
 
+    if is_anim_failed(media_path) {
+        return honeycomb_thumb_handle(media_path, is_active, accent_rgb);
+    }
+
     let path_buf = media_path.to_path_buf();
     let mut in_flight = match HONEYCOMB_ANIM_IN_FLIGHT.lock() {
         Ok(guard) => guard,
@@ -859,7 +938,7 @@ pub fn honeycomb_anim_handle(
 }
 
 pub fn generate_honeycomb_anim_sync(media_path: &Path, accent_rgb: Option<[u8; 3]>) {
-    if !media_path.is_file() {
+    if !media_path.is_file() || is_anim_failed(media_path) {
         return;
     }
     let ext = media_path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
@@ -883,13 +962,18 @@ pub fn generate_honeycomb_anim_sync(media_path: &Path, accent_rgb: Option<[u8; 3
         return;
     }
 
+    let _permit = FfmpegPermit::acquire();
+
     let hash = format!("{:016x}", md5_simple(media_path.to_string_lossy().as_bytes()));
     let temp_dir = std::env::temp_dir().join(format!("aura_anim_{}_{}", std::process::id(), &hash[..8]));
     let _ = std::fs::create_dir_all(&temp_dir);
 
     let pattern = temp_dir.join("f_%02d.png");
     let mut cmd = std::process::Command::new("ffmpeg");
-    cmd.arg("-y")
+    cmd.arg("-nostdin")
+        .arg("-y")
+        .arg("-threads")
+        .arg("1")
         .arg("-ss")
         .arg("00:00:01")
         .arg("-i")
@@ -906,6 +990,7 @@ pub fn generate_honeycomb_anim_sync(media_path: &Path, accent_rgb: Option<[u8; 3
 
     let _ = cmd.status();
 
+    let mut any_saved = false;
     for i in 0..HONEYCOMB_ANIM_FRAME_COUNT {
         let f_path = temp_dir.join(format!("f_{:02}.png", i + 1));
         let img_opt = if f_path.exists() {
@@ -927,7 +1012,11 @@ pub fn generate_honeycomb_anim_sync(media_path: &Path, accent_rgb: Option<[u8; 3
             let out_act = apply_glass_honeycomb_mask(&img, true, accent_rgb);
             let p_act = honeycomb_anim_frame_path(media_path, true, accent_rgb, i);
             let _ = out_act.save(&p_act);
+            any_saved = true;
         }
+    }
+    if !any_saved {
+        mark_anim_failed(media_path);
     }
 
     let _ = std::fs::remove_dir_all(&temp_dir);
@@ -998,10 +1087,23 @@ pub fn prewarm_honeycomb_thumbs(media_paths: &[PathBuf], accent_rgb: [u8; 3]) {
     for path in media_paths {
         trigger_honeycomb_thumb_async(path.clone(), true, Some(accent_rgb));
         trigger_honeycomb_thumb_async(path.clone(), false, Some(accent_rgb));
+        if is_anim_failed(path) || honeycomb_anim_frame_path(path, false, Some(accent_rgb), 0).exists() {
+            continue;
+        }
         let p = path.clone();
-        spawn_bg_task(move || {
-            generate_honeycomb_anim_sync(&p, Some(accent_rgb));
-        });
+        let mut in_flight = match HONEYCOMB_ANIM_IN_FLIGHT.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        if in_flight.insert(p.clone()) {
+            drop(in_flight);
+            spawn_bg_task(move || {
+                generate_honeycomb_anim_sync(&p, Some(accent_rgb));
+                if let Ok(mut guard) = HONEYCOMB_ANIM_IN_FLIGHT.lock() {
+                    guard.remove(&p);
+                }
+            });
+        }
     }
 }
 
@@ -1262,8 +1364,12 @@ pub async fn generate_thumbnail(media_path: &Path) -> Option<PathBuf> {
         }
     }
 
+    let _permit = ASYNC_FFMPEG_SEM.acquire().await.ok();
     let mut cmd = Command::new("ffmpeg");
-    cmd.arg("-y")
+    cmd.arg("-nostdin")
+        .arg("-y")
+        .arg("-threads")
+        .arg("1")
         .arg("-ss")
         .arg("00:00:01")
         .arg("-i")

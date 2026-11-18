@@ -174,10 +174,98 @@ impl AuraApp {
                 .class(cosmic::theme::Container::Card)
         };
 
+        let pos = self.config.switcher_position.as_str();
+        if pos == "right" {
+            let panel_h = (self.switcher_window_height * 2.0 / 3.0).clamp(440.0, 920.0);
+            let mut list_col = widget::column::with_capacity(n)
+                .spacing(10)
+                .padding([4, 8, 12, 8])
+                .align_x(Alignment::Center);
+
+            for (idx, video) in pool.iter().enumerate() {
+                let is_selected = idx == curr_idx;
+                let is_running = self.config.current.as_deref() == Some(video.path.to_string_lossy().as_ref());
+
+                let mut card_col = widget::column::with_capacity(2)
+                    .spacing(6)
+                    .align_x(Alignment::Center);
+
+                if let Some(thumb) = &video.thumb_path {
+                    card_col = card_col.push(
+                        widget::image(thumb.clone())
+                            .width(Length::Fixed(264.0))
+                            .height(Length::Fixed(148.0))
+                            .content_fit(cosmic::iced::ContentFit::Cover),
+                    );
+                } else {
+                    card_col = card_col.push(
+                        widget::container(widget::text::caption("..."))
+                            .width(Length::Fixed(264.0))
+                            .height(Length::Fixed(148.0))
+                            .align_x(Horizontal::Center)
+                            .align_y(Vertical::Center),
+                    );
+                }
+
+                let label = if is_running {
+                    format!("● {}", video.name)
+                } else {
+                    video.name.clone()
+                };
+                card_col = card_col.push(
+                    widget::text::body(label)
+                        .size(13)
+                        .align_x(Horizontal::Center),
+                );
+
+                let card = widget::container(card_col)
+                    .padding(8)
+                    .width(Length::Fixed(282.0))
+                    .class(if is_selected || is_running {
+                        cosmic::theme::Container::Primary
+                    } else {
+                        cosmic::theme::Container::Secondary
+                    });
+
+                list_col = list_col.push(
+                    widget::mouse_area(card).on_press(Message::SwitcherApplyIndex(idx)),
+                );
+            }
+
+            let header = widget::row::with_capacity(3)
+                .spacing(8)
+                .padding([12, 12, 8, 12])
+                .align_y(Alignment::Center)
+                .push(widget::text::title4("Wallpapers").width(Length::Fill))
+                .push(widget::button::standard("⚙").on_press(Message::OpenSettingsFromHud))
+                .push(widget::button::standard("✕").on_press(Message::CloseQuickSwitcher));
+
+            let widget_panel = widget::container(
+                widget::column::with_capacity(2)
+                    .push(header)
+                    .push(widget::scrollable(list_col).height(Length::Fill))
+            )
+            .width(Length::Fixed(310.0))
+            .height(Length::Fixed(panel_h))
+            .class(cosmic::theme::Container::Card);
+
+            let right_pod = widget::mouse_area(widget_panel).on_press(Message::SwitcherNoop);
+            let positioned_right = widget::container(right_pod)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .align_x(Horizontal::Right)
+                .align_y(Vertical::Center)
+                .padding([0, 14, 0, 0])
+                .class(cosmic::theme::Container::Transparent);
+
+            return widget::mouse_area(positioned_right)
+                .on_press(Message::CloseQuickSwitcher)
+                .into();
+        }
+
         // Prevent clicks inside the pod from triggering the outside close
         let pod_mouse_area = widget::mouse_area(floating_pod).on_press(Message::SwitcherNoop);
 
-        let pos = self.config.switcher_position.as_str();
         let positioned = match pos {
             "bottom" => widget::container(pod_mouse_area)
                 .width(Length::Fill)

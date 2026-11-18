@@ -36,6 +36,8 @@ info = {
     'LSMinimumSystemVersion': minimum_macos,
     'LSApplicationCategoryType': 'public.app-category.utilities',
     'NSHighResolutionCapable': True,
+    'NSSupportsAutomaticTermination': False,
+    'NSSupportsSuddenTermination': False,
 }
 pathlib.Path(sys.argv[1]).write_bytes(plistlib.dumps(info))
 pathlib.Path(sys.argv[2]).write_bytes(plistlib.dumps({

@@ -1328,7 +1328,7 @@ impl cosmic::Application for AuraApp {
     }
 
     fn view_window(&self, id: cosmic::iced::window::Id) -> Element<'_, Self::Message> {
-        if self.switcher_window_id == Some(id) || self.hidden_switcher_window_id == Some(id) {
+        if self.switcher_window_id == Some(id) {
             self.view_quick_switcher()
         } else if self.core().main_window_id() == Some(id) {
             self.view()
@@ -1405,25 +1405,24 @@ impl cosmic::Application for AuraApp {
             );
         }
 
-        if self.config.switcher_style == crate::config::SwitcherStyle::Honeycomb
-            && (self.active_page == Page::Library || self.switcher_window_id.is_some())
-        {
+        let has_visible_ui = self.switcher_window_id.is_some()
+            || (self.is_window_open && self.active_page == Page::Library);
+
+        if self.config.switcher_style == crate::config::SwitcherStyle::Honeycomb && has_visible_ui {
             subs.push(
-                cosmic::iced::time::every(Duration::from_millis(150))
+                cosmic::iced::time::every(Duration::from_millis(250))
                     .map(|_| Message::HoneycombAnimTick)
             );
         }
 
-        if self.config.switcher_style == crate::config::SwitcherStyle::Cinematic
-            && (self.active_page == Page::Library || self.switcher_window_id.is_some())
-        {
+        if self.config.switcher_style == crate::config::SwitcherStyle::Cinematic && has_visible_ui {
             subs.push(
-                cosmic::iced::time::every(Duration::from_millis(100))
+                cosmic::iced::time::every(Duration::from_millis(160))
                     .map(|_| Message::CinematicAnimTick)
             );
         }
 
-        if self.honeycomb_is_animating_scroll {
+        if self.honeycomb_is_animating_scroll && has_visible_ui {
             subs.push(
                 cosmic::iced::time::every(Duration::from_millis(16))
                     .map(|_| Message::HoneycombScrollTick)
@@ -4148,6 +4147,13 @@ impl cosmic::Application for AuraApp {
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
+        if !self.is_window_open {
+            return widget::container(widget::Space::new())
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .class(cosmic::theme::Container::Transparent)
+                .into();
+        }
         if self.active_page == Page::Library && self.config.switcher_style == crate::config::SwitcherStyle::Honeycomb {
             let honeycomb_content = self.view_library();
 

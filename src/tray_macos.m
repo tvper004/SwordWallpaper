@@ -263,11 +263,20 @@ int sword_wallpaper_macos_is_dark_appearance(void) {
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender {
     if (!g_is_quitting) {
+        NSAppleEventDescriptor *appleEvent = [[NSAppleEventManager sharedAppleEventManager] currentAppleEvent];
         NSEvent *currEvent = [NSApp currentEvent];
         BOOL isCmdQ = (currEvent && currEvent.type == NSEventTypeKeyDown
             && (currEvent.modifierFlags & NSEventModifierFlagCommand)
             && [[currEvent.charactersIgnoringModifiers lowercaseString] isEqualToString:@"q"]);
-        if (!isCmdQ) {
+        BOOL isUserAppleEventQuit = NO;
+        if (appleEvent && [appleEvent eventID] == kAEQuitApplication) {
+            NSAppleEventDescriptor *reasonDesc = [appleEvent paramDescriptorForKeyword:'why?'];
+            OSType reason = reasonDesc ? [reasonDesc typeCodeValue] : 0;
+            if (reason != 'autt' && reason != 'aete') {
+                isUserAppleEventQuit = YES;
+            }
+        }
+        if (!isUserAppleEventQuit && !isCmdQ) {
             return NSTerminateCancel;
         }
         g_is_quitting = YES;
