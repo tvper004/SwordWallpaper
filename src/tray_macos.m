@@ -226,6 +226,8 @@ void setup_mac_tray(
 
     run_on_main(^{
         [NSApplication sharedApplication];
+        [[NSProcessInfo processInfo] disableAutomaticTermination:@"Background wallpaper service active"];
+        [[NSProcessInfo processInfo] disableSuddenTermination];
 
         if (g_status_item != nil) {
             return;
