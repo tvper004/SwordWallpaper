@@ -173,6 +173,8 @@ mod ffi {
         pub fn update_mac_tray_show_label(title_show: *const std::ffi::c_char);
         pub fn hide_mac_main_window();
         pub fn show_mac_main_window();
+        pub fn hide_mac_switcher_window();
+        pub fn show_mac_switcher_window();
         pub fn minimize_mac_main_window();
         pub fn zoom_mac_main_window();
         pub fn macos_set_window_transparent();
@@ -219,6 +221,22 @@ pub fn hide_mac_window() {
 pub fn show_mac_window() {
     unsafe {
         ffi::show_mac_main_window();
+    }
+}
+
+#[cfg(target_os = "macos")]
+#[allow(dead_code)]
+pub fn hide_mac_switcher() {
+    unsafe {
+        ffi::hide_mac_switcher_window();
+    }
+}
+
+#[cfg(target_os = "macos")]
+#[allow(dead_code)]
+pub fn show_mac_switcher() {
+    unsafe {
+        ffi::show_mac_switcher_window();
     }
 }
 

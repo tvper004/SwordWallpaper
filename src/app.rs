@@ -393,6 +393,7 @@ pub struct AuraApp {
     pub(crate) pending_lockscreen_conversions: VecDeque<LockscreenJob>,
     pub(crate) last_update_check: Option<Instant>,
     pub(crate) switcher_window_id: Option<cosmic::iced::window::Id>,
+    pub(crate) hidden_switcher_window_id: Option<cosmic::iced::window::Id>,
     pub(crate) closing_switcher_window_id: Option<cosmic::iced::window::Id>,
     pub(crate) switcher_index: usize,
     pub(crate) custom_interval_input: String,
@@ -528,6 +529,26 @@ impl AuraApp {
                 Task::done(cosmic::Action::App(Message::ApplyWallpaper { video_path, output }))
             })
             .collect()
+    }
+
+    fn dismiss_switcher_window(&mut self) -> Option<Task<cosmic::Action<Message>>> {
+        let id = self.switcher_window_id.take()?;
+        #[cfg(target_os = "macos")]
+        {
+            self.hidden_switcher_window_id = Some(id);
+            crate::tray::hide_mac_switcher();
+            None
+        }
+        #[cfg(target_os = "linux")]
+        {
+            self.closing_switcher_window_id = Some(id);
+            Some(Task::done(cosmic::Action::Cosmic(cosmic::app::Action::Surface(destroy_layer_shell(id)))))
+        }
+        #[cfg(all(not(target_os = "linux"), not(target_os = "macos")))]
+        {
+            self.closing_switcher_window_id = Some(id);
+            Some(cosmic::iced::window::close(id))
+        }
     }
 
     #[cfg(target_os = "macos")]
@@ -1186,6 +1207,7 @@ impl cosmic::Application for AuraApp {
             pending_lockscreen_conversions: VecDeque::new(),
             last_update_check: None,
             switcher_window_id: None,
+            hidden_switcher_window_id: None,
             closing_switcher_window_id: None,
             switcher_index: 0,
             custom_interval_input: initial_interval.to_string(),
@@ -1306,7 +1328,7 @@ impl cosmic::Application for AuraApp {
     }
 
     fn view_window(&self, id: cosmic::iced::window::Id) -> Element<'_, Self::Message> {
-        if self.switcher_window_id == Some(id) {
+        if self.switcher_window_id == Some(id) || self.hidden_switcher_window_id == Some(id) {
             self.view_quick_switcher()
         } else if self.core().main_window_id() == Some(id) {
             self.view()
@@ -1847,12 +1869,19 @@ impl cosmic::Application for AuraApp {
             Message::ShowMainWindow => {
                 let mut tasks = self.reapply_saved_wallpapers_if_stopped();
 
-                if let Some(id) = self.switcher_window_id.take() {
-                    self.closing_switcher_window_id = Some(id);
-                    #[cfg(target_os = "linux")]
-                    tasks.push(Task::done(cosmic::Action::Cosmic(cosmic::app::Action::Surface(destroy_layer_shell(id)))));
-                    #[cfg(not(target_os = "linux"))]
-                    tasks.push(cosmic::iced::window::close(id));
+                if let Some(t) = self.dismiss_switcher_window() {
+                    tasks.push(t);
+                }
+
+                #[cfg(target_os = "macos")]
+                {
+                    if let Some(id) = self.core().main_window_id() {
+                        self.is_window_open = true;
+                        crate::tray::show_mac_window();
+                        crate::tray::update_mac_tray_window_label(true);
+                        tasks.push(cosmic::iced::window::gain_focus(id));
+                        return Task::batch(tasks);
+                    }
                 }
 
                 if !self.is_window_open || self.core().main_window_id().is_none() {
@@ -1955,21 +1984,36 @@ impl cosmic::Application for AuraApp {
                 self.prewarm_switcher_around(curr_idx);
 
                 let mut tasks = Vec::new();
-                if let Some(main_id) = self.core().main_window_id() {
-                    self.is_window_open = false;
-                    self.core_mut().set_main_window_id(None);
-                    self.core_mut().window.is_maximized = false;
-                    self.core_mut().window.sharp_corners = false;
-                    tasks.push(cosmic::iced::window::close(main_id));
-                    #[cfg(target_os = "macos")]
-                    crate::tray::update_mac_tray_window_label(false);
-                } else if self.is_window_open {
-                    self.is_window_open = false;
-                    #[cfg(target_os = "macos")]
-                    crate::tray::update_mac_tray_window_label(false);
+                #[cfg(target_os = "macos")]
+                {
+                    if self.is_window_open {
+                        self.is_window_open = false;
+                        crate::tray::hide_mac_window();
+                        crate::tray::update_mac_tray_window_label(false);
+                    }
+                }
+                #[cfg(not(target_os = "macos"))]
+                {
+                    if let Some(main_id) = self.core().main_window_id() {
+                        self.is_window_open = false;
+                        self.core_mut().set_main_window_id(None);
+                        self.core_mut().window.is_maximized = false;
+                        self.core_mut().window.sharp_corners = false;
+                        tasks.push(cosmic::iced::window::close(main_id));
+                    } else if self.is_window_open {
+                        self.is_window_open = false;
+                    }
                 }
 
                 if let Some(id) = self.switcher_window_id {
+                    tasks.push(cosmic::iced::window::gain_focus(id));
+                    return Task::batch(tasks);
+                }
+
+                #[cfg(target_os = "macos")]
+                if let Some(id) = self.hidden_switcher_window_id.take() {
+                    self.switcher_window_id = Some(id);
+                    crate::tray::show_mac_switcher();
                     tasks.push(cosmic::iced::window::gain_focus(id));
                     return Task::batch(tasks);
                 }
@@ -2058,12 +2102,8 @@ impl cosmic::Application for AuraApp {
                 self.honeycomb_is_animating_scroll = false;
                 self.honeycomb_drag_start = None;
                 self.honeycomb_drag_distance = 0.0;
-                if let Some(id) = self.switcher_window_id.take() {
-                    self.closing_switcher_window_id = Some(id);
-                    #[cfg(target_os = "linux")]
-                    return Task::done(cosmic::Action::Cosmic(cosmic::app::Action::Surface(destroy_layer_shell(id))));
-                    #[cfg(not(target_os = "linux"))]
-                    return cosmic::iced::window::close(id);
+                if let Some(t) = self.dismiss_switcher_window() {
+                    return t;
                 }
             }
 
@@ -2077,12 +2117,8 @@ impl cosmic::Application for AuraApp {
                 self.switcher_last_edge_scroll = None;
                 self.switcher_active_output = None;
                 self.honeycomb_drag_start = None;
-                if let Some(id) = self.switcher_window_id.take() {
-                    self.closing_switcher_window_id = Some(id);
-                    #[cfg(target_os = "linux")]
-                    tasks.push(Task::done(cosmic::Action::Cosmic(cosmic::app::Action::Surface(destroy_layer_shell(id)))));
-                    #[cfg(not(target_os = "linux"))]
-                    tasks.push(cosmic::iced::window::close(id));
+                if let Some(t) = self.dismiss_switcher_window() {
+                    tasks.push(t);
                 }
                 self.active_page = Page::Settings;
                 self.nav.activate_position(3);
@@ -2167,14 +2203,10 @@ impl cosmic::Application for AuraApp {
                         output: target_output,
                     })));
                 }
-                if let Some(id) = self.switcher_window_id.take() {
-                    self.closing_switcher_window_id = Some(id);
-                    self.switcher_active_output = None;
-                    #[cfg(target_os = "linux")]
-                    tasks.push(Task::done(cosmic::Action::Cosmic(cosmic::app::Action::Surface(destroy_layer_shell(id)))));
-                    #[cfg(not(target_os = "linux"))]
-                    tasks.push(cosmic::iced::window::close(id));
+                if let Some(t) = self.dismiss_switcher_window() {
+                    tasks.push(t);
                 }
+                self.switcher_active_output = None;
                 return Task::batch(tasks);
             }
 
@@ -2518,34 +2550,37 @@ impl cosmic::Application for AuraApp {
 
             Message::HideMainWindow => {
                 self.is_window_open = false;
-                if let Some(id) = self.switcher_window_id.take() {
-                    self.closing_switcher_window_id = Some(id);
-                    #[cfg(not(target_os = "linux"))]
-                    return cosmic::iced::window::close(id);
-                }
-                if let Some(id) = self.core().main_window_id() {
-                    self.core_mut().set_main_window_id(None);
-                    self.core_mut().window.is_maximized = false;
-                    self.core_mut().window.sharp_corners = false;
-                    #[cfg(target_os = "macos")]
-                    crate::tray::update_mac_tray_window_label(false);
-
-                    if self.config.switcher_style == crate::config::SwitcherStyle::Honeycomb {
-                        return Task::batch([
-                            cosmic::iced::window::close(id),
-                            Task::done(cosmic::Action::App(Message::OpenQuickSwitcher)),
-                        ]);
+                if self.switcher_window_id.is_some() {
+                    if let Some(t) = self.dismiss_switcher_window() {
+                        return t;
                     }
-                    return cosmic::iced::window::close(id);
+                    return Task::none();
                 }
                 #[cfg(target_os = "macos")]
                 {
+                    crate::tray::hide_mac_window();
                     crate::tray::update_mac_tray_window_label(false);
                     if self.config.switcher_style == crate::config::SwitcherStyle::Honeycomb {
                         return Task::done(cosmic::Action::App(Message::OpenQuickSwitcher));
                     }
+                    return Task::none();
                 }
-                return Task::none();
+                #[cfg(not(target_os = "macos"))]
+                {
+                    if let Some(id) = self.core().main_window_id() {
+                        self.core_mut().set_main_window_id(None);
+                        self.core_mut().window.is_maximized = false;
+                        self.core_mut().window.sharp_corners = false;
+                        if self.config.switcher_style == crate::config::SwitcherStyle::Honeycomb {
+                            return Task::batch([
+                                cosmic::iced::window::close(id),
+                                Task::done(cosmic::Action::App(Message::OpenQuickSwitcher)),
+                            ]);
+                        }
+                        return cosmic::iced::window::close(id);
+                    }
+                    return Task::none();
+                }
             }
 
             Message::MinimizeMainWindow => {
@@ -2579,35 +2614,44 @@ impl cosmic::Application for AuraApp {
             }
 
             Message::WindowCloseRequested(id) => {
-                if self.switcher_window_id == Some(id) || self.closing_switcher_window_id == Some(id) {
-                    self.switcher_window_id = None;
-                    self.closing_switcher_window_id = Some(id);
+                if self.switcher_window_id == Some(id) || self.closing_switcher_window_id == Some(id) || self.hidden_switcher_window_id == Some(id) {
                     self.switcher_cursor_position = None;
                     self.switcher_edge_scroll_dir = 0;
                     self.switcher_last_edge_scroll = None;
                     self.switcher_active_output = None;
-                    #[cfg(target_os = "linux")]
-                    return Task::done(cosmic::Action::Cosmic(cosmic::app::Action::Surface(destroy_layer_shell(id))));
-                    #[cfg(not(target_os = "linux"))]
-                    return cosmic::iced::window::close(id);
+                    if let Some(t) = self.dismiss_switcher_window() {
+                        return t;
+                    }
+                    return Task::none();
                 }
-                if self.core().main_window_id() == Some(id) {
+                #[cfg(target_os = "macos")]
+                {
+                    let _ = id;
                     self.is_window_open = false;
-                    self.core_mut().set_main_window_id(None);
-                    self.core_mut().window.is_maximized = false;
-                    self.core_mut().window.sharp_corners = false;
-                    #[cfg(target_os = "macos")]
+                    crate::tray::hide_mac_window();
                     crate::tray::update_mac_tray_window_label(false);
-
                     if self.config.switcher_style == crate::config::SwitcherStyle::Honeycomb {
-                        return Task::batch([
-                            cosmic::iced::window::close(id),
-                            Task::done(cosmic::Action::App(Message::OpenQuickSwitcher)),
-                        ]);
+                        return Task::done(cosmic::Action::App(Message::OpenQuickSwitcher));
+                    }
+                    return Task::none();
+                }
+                #[cfg(not(target_os = "macos"))]
+                {
+                    if self.core().main_window_id() == Some(id) {
+                        self.is_window_open = false;
+                        self.core_mut().set_main_window_id(None);
+                        self.core_mut().window.is_maximized = false;
+                        self.core_mut().window.sharp_corners = false;
+                        if self.config.switcher_style == crate::config::SwitcherStyle::Honeycomb {
+                            return Task::batch([
+                                cosmic::iced::window::close(id),
+                                Task::done(cosmic::Action::App(Message::OpenQuickSwitcher)),
+                            ]);
+                        }
+                        return cosmic::iced::window::close(id);
                     }
                     return cosmic::iced::window::close(id);
                 }
-                return cosmic::iced::window::close(id);
             }
 
             Message::WindowClosed(id) => {
