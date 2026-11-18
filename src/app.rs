@@ -2559,9 +2559,6 @@ impl cosmic::Application for AuraApp {
                 {
                     crate::tray::hide_mac_window();
                     crate::tray::update_mac_tray_window_label(false);
-                    if self.config.switcher_style == crate::config::SwitcherStyle::Honeycomb {
-                        return Task::done(cosmic::Action::App(Message::OpenQuickSwitcher));
-                    }
                     return Task::none();
                 }
                 #[cfg(not(target_os = "macos"))]
@@ -2629,9 +2626,6 @@ impl cosmic::Application for AuraApp {
                     self.is_window_open = false;
                     crate::tray::hide_mac_window();
                     crate::tray::update_mac_tray_window_label(false);
-                    if self.config.switcher_style == crate::config::SwitcherStyle::Honeycomb {
-                        return Task::done(cosmic::Action::App(Message::OpenQuickSwitcher));
-                    }
                     return Task::none();
                 }
                 #[cfg(not(target_os = "macos"))]

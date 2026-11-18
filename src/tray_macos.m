@@ -99,6 +99,9 @@ void hide_mac_switcher_window(void) {
             }
             [NSApp setDelegate:g_delegate];
         }
+        if (g_item_show) {
+            [g_item_show setTitle:@"Mostrar ventana"];
+        }
         if (g_switcher_window) {
             [g_switcher_window orderOut:nil];
         } else {
@@ -116,6 +119,9 @@ void show_mac_switcher_window(void) {
     run_on_main(^{
         [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
         [NSApp activateIgnoringOtherApps:YES];
+        if (g_item_show) {
+            [g_item_show setTitle:@"Cerrar ventana"];
+        }
         if (g_switcher_window) {
             [g_switcher_window setOpaque:NO];
             [g_switcher_window setBackgroundColor:[NSColor clearColor]];
@@ -126,8 +132,12 @@ void show_mac_switcher_window(void) {
 
 void zoom_mac_main_window(void) {
   run_on_main(^{
+    if (g_main_window) {
+      [g_main_window zoom:nil];
+      return;
+    }
     for (NSWindow *win in [NSApp windows]) {
-      if ([win isKindOfClass:NSClassFromString(@"NSStatusBarWindow")]) {
+      if (!is_main_settings_window(win)) {
         continue;
       }
       g_main_window = win;
@@ -143,7 +153,11 @@ void macos_set_window_transparent(void) {
       if ([win isKindOfClass:NSClassFromString(@"NSStatusBarWindow")]) {
         continue;
       }
-      g_main_window = win;
+      if (is_main_settings_window(win)) {
+        g_main_window = win;
+      } else {
+        g_switcher_window = win;
+      }
       [win setOpaque:NO];
       [win setBackgroundColor:[NSColor clearColor]];
     }
@@ -152,8 +166,12 @@ void macos_set_window_transparent(void) {
 
 void minimize_mac_main_window(void) {
   run_on_main(^{
+    if (g_main_window) {
+      [g_main_window miniaturize:nil];
+      return;
+    }
     for (NSWindow *win in [NSApp windows]) {
-      if ([win isKindOfClass:NSClassFromString(@"NSStatusBarWindow")]) {
+      if (!is_main_settings_window(win)) {
         continue;
       }
       g_main_window = win;
@@ -169,7 +187,11 @@ void ensure_mac_window_capabilities(void) {
       if ([win isKindOfClass:NSClassFromString(@"NSStatusBarWindow")]) {
         continue;
       }
-      g_main_window = win;
+      if (is_main_settings_window(win)) {
+        g_main_window = win;
+      } else {
+        g_switcher_window = win;
+      }
       [win setOpaque:NO];
       [win setBackgroundColor:[NSColor clearColor]];
     }
@@ -239,6 +261,7 @@ int sword_wallpaper_macos_is_dark_appearance(void) {
 
   if (any_visible) {
     hide_mac_main_window();
+    hide_mac_switcher_window();
     if (g_tray_callback) {
       g_tray_callback(4); // 4 = HideApp
     }
@@ -268,15 +291,27 @@ int sword_wallpaper_macos_is_dark_appearance(void) {
         BOOL isCmdQ = (currEvent && currEvent.type == NSEventTypeKeyDown
             && (currEvent.modifierFlags & NSEventModifierFlagCommand)
             && [[currEvent.charactersIgnoringModifiers lowercaseString] isEqualToString:@"q"]);
-        BOOL isUserAppleEventQuit = NO;
+        BOOL isAuthorizedAppleEventQuit = NO;
         if (appleEvent && [appleEvent eventID] == kAEQuitApplication) {
-            NSAppleEventDescriptor *reasonDesc = [appleEvent paramDescriptorForKeyword:'why?'];
+            NSAppleEventDescriptor *reasonDesc = [appleEvent paramDescriptorForKeyword:kAEQuitReason];
             OSType reason = reasonDesc ? [reasonDesc typeCodeValue] : 0;
-            if (reason != 'autt' && reason != 'aete') {
-                isUserAppleEventQuit = YES;
+            if (reason == kAELogOut || reason == kAEReallyLogOut ||
+                reason == kAEShowRestartDialog || reason == kAEShowShutdownDialog) {
+                isAuthorizedAppleEventQuit = YES;
+            }
+            NSAppleEventDescriptor *pidDesc = [appleEvent attributeDescriptorForKeyword:keySenderPIDAttr];
+            pid_t senderPid = pidDesc ? (pid_t)[pidDesc int32Value] : -1;
+            if (senderPid > 0) {
+                NSRunningApplication *senderApp =
+                    [NSRunningApplication runningApplicationWithProcessIdentifier:senderPid];
+                NSString *bundleId = senderApp.bundleIdentifier;
+                if ([bundleId isEqualToString:@"com.apple.dock"] ||
+                    [bundleId isEqualToString:@"com.apple.loginwindow"]) {
+                    isAuthorizedAppleEventQuit = YES;
+                }
             }
         }
-        if (!isUserAppleEventQuit && !isCmdQ) {
+        if (!isAuthorizedAppleEventQuit && !isCmdQ) {
             return NSTerminateCancel;
         }
         g_is_quitting = YES;
@@ -284,7 +319,11 @@ int sword_wallpaper_macos_is_dark_appearance(void) {
     if (g_tray_callback) {
         g_tray_callback(3); // 3 = Quit
     }
-    return NSTerminateNow;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(400 * NSEC_PER_MSEC)),
+                   dispatch_get_main_queue(), ^{
+        [NSApp replyToApplicationShouldTerminate:YES];
+    });
+    return NSTerminateLater;
 }
 
 - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender
@@ -416,7 +455,11 @@ void setup_mac_tray(const uint8_t *icon_bytes, size_t icon_len,
       }
       if ([win isVisible]) {
         any_visible = YES;
-        g_main_window = win;
+        if (is_main_settings_window(win)) {
+          g_main_window = win;
+        } else {
+          g_switcher_window = win;
+        }
         break;
       }
     }
@@ -439,17 +482,6 @@ void setup_mac_tray(const uint8_t *icon_bytes, size_t icon_len,
     [menu addItem:g_item_close];
 
     g_status_item.menu = menu;
-
-    // Listen for Dock icon click to reopen window if closed
-    [[NSNotificationCenter defaultCenter]
-        addObserverForName:NSApplicationDidBecomeActiveNotification
-                    object:nil
-                     queue:[NSOperationQueue mainQueue]
-                usingBlock:^(NSNotification *_Nonnull __unused note) {
-                  if (g_tray_callback) {
-                    g_tray_callback(2); // ShowWindow
-                  }
-                }];
 
     // Listen for system shutdown / logout to cleanly quit without blocking
     // macOS shutdown
