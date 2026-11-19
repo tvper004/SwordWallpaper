@@ -64,10 +64,9 @@
 ```
 Este script compila `aura` y `aura-bg` en modo `--release`, genera el bundle `target/Sword Wallpaper.app` con su helper `Aura Wallpaper.app` embebido, firma ambos bundles con `codesign` y verifica la integridad de la firma.
 
-Para instalarlo en tu carpeta de Aplicaciones:
+Para instalarlo en tu carpeta de Aplicaciones (si ya existe una versión, ciérrala y muévela a la Papelera desde Finder):
 ```bash
-rm -rf "/Applications/Sword Wallpaper.app"
-cp -R "target/Sword Wallpaper.app" "/Applications/Sword Wallpaper.app"
+cp -R "target/Sword Wallpaper.app" "/Applications/"
 ```
 
 ---
