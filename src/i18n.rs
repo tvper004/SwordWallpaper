@@ -1096,6 +1096,13 @@ impl Language {
         }
     }
 
+    pub fn tray_visualize_hud(&self) -> &'static str {
+        match self {
+            Language::Es => "Visualizar HUD",
+            Language::En => "View HUD",
+        }
+    }
+
     pub fn tray_show_window(&self) -> &'static str {
         match self {
             Language::Es => "Mostrar ventana",
@@ -1784,6 +1791,7 @@ impl Language {
     }
 
     // --- Quick Switcher HUD Settings ---
+    #[allow(dead_code)]
     pub fn settings_switcher_title(&self) -> &'static str {
         match self {
             Language::Es => "Selector Rápido HUD",
@@ -1791,6 +1799,7 @@ impl Language {
         }
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_desc(&self) -> &'static str {
         match self {
             Language::Es => "Ventana emergente minimalista centrada para cambiar fondos al instante",
@@ -1799,6 +1808,7 @@ impl Language {
     }
 
     #[cfg(not(target_os = "macos"))]
+    #[allow(dead_code)]
     pub fn settings_switcher_tray_click_label(&self) -> &'static str {
         match self {
             Language::Es => "Clic en el icono de la barra:",
@@ -1807,6 +1817,7 @@ impl Language {
     }
 
     #[cfg(not(target_os = "macos"))]
+    #[allow(dead_code)]
     pub fn settings_switcher_tray_opt_switcher(&self) -> &'static str {
         match self {
             Language::Es => "Selector Rápido HUD",
@@ -1815,6 +1826,7 @@ impl Language {
     }
 
     #[cfg(not(target_os = "macos"))]
+    #[allow(dead_code)]
     pub fn settings_switcher_tray_opt_main(&self) -> &'static str {
         match self {
             Language::Es => "Ventana Principal",
@@ -1822,6 +1834,7 @@ impl Language {
         }
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_filter_label(&self) -> &'static str {
         match self {
             Language::Es => "Fondos en el selector:",
@@ -1829,6 +1842,7 @@ impl Language {
         }
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_filter_all(&self) -> &'static str {
         match self {
             Language::Es => "Toda la biblioteca",
@@ -1836,6 +1850,7 @@ impl Language {
         }
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_filter_favs(&self) -> &'static str {
         match self {
             Language::Es => "Solo favoritos",
@@ -1843,6 +1858,7 @@ impl Language {
         }
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_shortcut_title(&self) -> &'static str {
         #[cfg(target_os = "macos")]
         return match self {
@@ -1856,6 +1872,7 @@ impl Language {
         };
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_shortcut_desc(&self) -> &'static str {
         #[cfg(target_os = "macos")]
         return match self {
@@ -1869,6 +1886,7 @@ impl Language {
         };
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_copy_cmd(&self) -> &'static str {
         match self {
             Language::Es => "Copiar comando",
@@ -1876,6 +1894,7 @@ impl Language {
         }
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_copied(&self) -> &'static str {
         match self {
             Language::Es => "Comando copiado al portapapeles: sword switcher",
@@ -1883,6 +1902,7 @@ impl Language {
         }
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_test_hud(&self) -> &'static str {
         match self {
             Language::Es => "⚡ Probar Selector HUD",
@@ -1890,6 +1910,7 @@ impl Language {
         }
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_position_label(&self) -> &'static str {
         match self {
             Language::Es => "Posición en pantalla:",
@@ -1897,6 +1918,7 @@ impl Language {
         }
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_pos_top(&self) -> &'static str {
         match self {
             Language::Es => "Arriba",
@@ -1904,6 +1926,7 @@ impl Language {
         }
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_pos_bottom(&self) -> &'static str {
         match self {
             Language::Es => "Abajo",
@@ -1911,6 +1934,7 @@ impl Language {
         }
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_pos_left(&self) -> &'static str {
         match self {
             Language::Es => "Izquierda",
@@ -1918,6 +1942,7 @@ impl Language {
         }
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_pos_right(&self) -> &'static str {
         match self {
             Language::Es => "Derecha",
@@ -1925,6 +1950,7 @@ impl Language {
         }
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_style_label(&self) -> &'static str {
         match self {
             Language::Es => "Estilo del HUD:",
@@ -1932,6 +1958,7 @@ impl Language {
         }
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_style_classic(&self) -> &'static str {
         match self {
             Language::Es => "Clásico",
@@ -1939,6 +1966,7 @@ impl Language {
         }
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_style_cinematic(&self) -> &'static str {
         match self {
             Language::Es => "Cinemático",
@@ -1946,6 +1974,7 @@ impl Language {
         }
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_style_cinematic_desc(&self) -> &'static str {
         match self {
             Language::Es => "Carrusel inmersivo a pantalla completa con tarjetas inclinadas y efecto coverflow",
@@ -1953,6 +1982,7 @@ impl Language {
         }
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_style_honeycomb(&self) -> &'static str {
         match self {
             Language::Es => "Panal de Abeja",
@@ -1960,6 +1990,7 @@ impl Language {
         }
     }
 
+    #[allow(dead_code)]
     pub fn settings_switcher_style_honeycomb_desc(&self) -> &'static str {
         match self {
             Language::Es => "Malla hexagonal panorámica con miniaturas optimizadas y desplazamiento fluido",
@@ -2016,6 +2047,7 @@ mod tests {
             assert!(!lang.tray_switcher().is_empty());
             assert!(!lang.tray_open().is_empty());
             assert!(!lang.tray_autostart().is_empty());
+            assert!(!lang.tray_visualize_hud().is_empty());
             assert!(!lang.tray_show_window().is_empty());
             assert!(!lang.tray_close().is_empty());
             assert!(!lang.tray_quit().is_empty());

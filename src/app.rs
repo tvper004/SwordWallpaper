@@ -2005,6 +2005,8 @@ impl cosmic::Application for AuraApp {
                 }
 
                 if let Some(id) = self.switcher_window_id {
+                    #[cfg(target_os = "macos")]
+                    crate::tray::show_mac_switcher();
                     tasks.push(cosmic::iced::window::gain_focus(id));
                     return Task::batch(tasks);
                 }

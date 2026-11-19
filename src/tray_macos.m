@@ -5,11 +5,13 @@ typedef void (*TrayCallback)(int action);
 static TrayCallback g_tray_callback = NULL;
 static NSStatusItem *g_status_item = nil;
 static NSMenuItem *g_item_autostart = nil;
+static NSMenuItem *g_item_hud = nil;
 static NSMenuItem *g_item_show = nil;
 static NSMenuItem *g_item_close = nil;
 
 @interface AuraTrayDelegate : NSObject <NSApplicationDelegate>
 - (void)onToggleAutostart:(id)sender;
+- (void)onOpenHud:(id)sender;
 - (void)onShowWindow:(id)sender;
 - (void)onQuit:(id)sender;
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender;
@@ -247,6 +249,12 @@ int sword_wallpaper_macos_is_dark_appearance(void) {
   }
 }
 
+- (void)onOpenHud:(id)sender {
+  if (g_tray_callback) {
+    g_tray_callback(5); // 5 = OpenSwitcher
+  }
+}
+
 - (void)onShowWindow:(id)sender {
   BOOL any_visible = NO;
   for (NSWindow *win in [NSApp windows]) {
@@ -338,6 +346,7 @@ int sword_wallpaper_macos_is_dark_appearance(void) {
 
 void setup_mac_tray(const uint8_t *icon_bytes, size_t icon_len,
                     bool autostart_initial, const char *title_autostart,
+                    const char *title_hud,
                     const char *title_show, const char *title_close,
                     TrayCallback callback) {
   g_tray_callback = callback;
@@ -349,6 +358,8 @@ void setup_mac_tray(const uint8_t *icon_bytes, size_t icon_len,
   NSString *ns_autostart = title_autostart
                                ? [NSString stringWithUTF8String:title_autostart]
                                : @"Iniciar automáticamente";
+  NSString *ns_hud = title_hud ? [NSString stringWithUTF8String:title_hud]
+                               : @"Visualizar HUD";
   NSString *ns_show = title_show ? [NSString stringWithUTF8String:title_show]
                                  : @"Mostrar ventana";
   NSString *ns_close =
@@ -448,6 +459,14 @@ void setup_mac_tray(const uint8_t *icon_bytes, size_t icon_len,
                                                  : NSControlStateValueOff];
     [menu addItem:g_item_autostart];
 
+    // 2. Visualizar HUD
+    g_item_hud =
+        [[NSMenuItem alloc] initWithTitle:ns_hud
+                                   action:@selector(onOpenHud:)
+                            keyEquivalent:@""];
+    [g_item_hud setTarget:g_delegate];
+    [menu addItem:g_item_hud];
+
     BOOL any_visible = NO;
     for (NSWindow *win in [NSApp windows]) {
       if ([win isKindOfClass:NSClassFromString(@"NSStatusBarWindow")]) {
@@ -465,7 +484,7 @@ void setup_mac_tray(const uint8_t *icon_bytes, size_t icon_len,
     }
     NSString *initial_show_title = any_visible ? @"Cerrar ventana" : ns_show;
 
-    // 2. Mostrar ventana / Cerrar ventana
+    // 3. Mostrar ventana / Cerrar ventana
     g_item_show = [[NSMenuItem alloc] initWithTitle:initial_show_title
                                              action:@selector(onShowWindow:)
                                       keyEquivalent:@""];
@@ -474,7 +493,7 @@ void setup_mac_tray(const uint8_t *icon_bytes, size_t icon_len,
 
     [menu addItem:[NSMenuItem separatorItem]];
 
-    // 3. Cerrar
+    // 4. Cerrar
     g_item_close = [[NSMenuItem alloc] initWithTitle:ns_close
                                               action:@selector(onQuit:)
                                        keyEquivalent:@"q"];
@@ -507,10 +526,12 @@ void update_mac_tray_autostart(bool autostart) {
   });
 }
 
-void update_mac_tray_labels(const char *title_autostart, const char *title_show,
-                            const char *title_close) {
+void update_mac_tray_labels(const char *title_autostart, const char *title_hud,
+                            const char *title_show, const char *title_close) {
   NSString *ns_autostart =
       title_autostart ? [NSString stringWithUTF8String:title_autostart] : nil;
+  NSString *ns_hud =
+      title_hud ? [NSString stringWithUTF8String:title_hud] : nil;
   NSString *ns_show =
       title_show ? [NSString stringWithUTF8String:title_show] : nil;
   NSString *ns_close =
@@ -519,6 +540,9 @@ void update_mac_tray_labels(const char *title_autostart, const char *title_show,
   run_on_main(^{
     if (ns_autostart && g_item_autostart) {
       [g_item_autostart setTitle:ns_autostart];
+    }
+    if (ns_hud && g_item_hud) {
+      [g_item_hud setTitle:ns_hud];
     }
     if (ns_show && g_item_show) {
       [g_item_show setTitle:ns_show];

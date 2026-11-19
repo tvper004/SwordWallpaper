@@ -109,6 +109,14 @@ impl Tray for AuraTray {
             }
             .into(),
             StandardItem {
+                label: lang.tray_visualize_hud().into(),
+                activate: Box::new(|tray: &mut AuraTray| {
+                    let _ = tray.tx.send(TrayAction::OpenSwitcher);
+                }),
+                ..Default::default()
+            }
+            .into(),
+            StandardItem {
                 label: lang.tray_show_window().into(),
                 activate: Box::new(|tray: &mut AuraTray| {
                     let _ = tray.tx.send(TrayAction::ShowApp);
@@ -160,6 +168,7 @@ mod ffi {
             icon_len: usize,
             autostart_initial: bool,
             title_autostart: *const std::ffi::c_char,
+            title_hud: *const std::ffi::c_char,
             title_show: *const std::ffi::c_char,
             title_close: *const std::ffi::c_char,
             callback: extern "C" fn(action_code: i32),
@@ -167,6 +176,7 @@ mod ffi {
         pub fn update_mac_tray_autostart(autostart: bool);
         pub fn update_mac_tray_labels(
             title_autostart: *const std::ffi::c_char,
+            title_hud: *const std::ffi::c_char,
             title_show: *const std::ffi::c_char,
             title_close: *const std::ffi::c_char,
         );
@@ -292,6 +302,7 @@ extern "C" fn mac_tray_callback(action_code: i32) {
             2 => TrayAction::ShowApp,
             3 => TrayAction::QuitApp,
             4 => TrayAction::HideApp,
+            5 => TrayAction::OpenSwitcher,
             _ => return,
         };
         let _ = tx.send(action);
@@ -368,10 +379,16 @@ impl TrayController {
         #[cfg(target_os = "macos")]
         {
             let autostart_title = std::ffi::CString::new(lang.tray_autostart()).unwrap_or_default();
+            let hud_title = std::ffi::CString::new(lang.tray_visualize_hud()).unwrap_or_default();
             let show_title = std::ffi::CString::new(lang.tray_show_window()).unwrap_or_default();
             let close_title = std::ffi::CString::new(lang.tray_close()).unwrap_or_default();
             unsafe {
-                ffi::update_mac_tray_labels(autostart_title.as_ptr(), show_title.as_ptr(), close_title.as_ptr());
+                ffi::update_mac_tray_labels(
+                    autostart_title.as_ptr(),
+                    hud_title.as_ptr(),
+                    show_title.as_ptr(),
+                    close_title.as_ptr(),
+                );
             }
         }
     }
@@ -428,6 +445,7 @@ impl TrayController {
             let lang = *self.language.lock().unwrap();
             let autostart_init = *self.autostart.lock().unwrap();
             let autostart_title = std::ffi::CString::new(lang.tray_autostart()).unwrap_or_default();
+            let hud_title = std::ffi::CString::new(lang.tray_visualize_hud()).unwrap_or_default();
             let show_title = std::ffi::CString::new(lang.tray_show_window()).unwrap_or_default();
             let close_title = std::ffi::CString::new(lang.tray_close()).unwrap_or_default();
 
@@ -439,6 +457,7 @@ impl TrayController {
                     icon_bytes.len(),
                     autostart_init,
                     autostart_title.as_ptr(),
+                    hud_title.as_ptr(),
                     show_title.as_ptr(),
                     close_title.as_ptr(),
                     mac_tray_callback,
@@ -487,6 +506,8 @@ mod tests {
         assert_eq!(act_auto, TrayAction::ToggleAutostart);
         let act_quit = TrayAction::QuitApp;
         assert_eq!(act_quit, TrayAction::QuitApp);
+        let act_hud = TrayAction::OpenSwitcher;
+        assert_eq!(act_hud, TrayAction::OpenSwitcher);
     }
 }
 
